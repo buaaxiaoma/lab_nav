@@ -1,4 +1,4 @@
-# Template for Isaac Lab Projects
+# Isaac Lab Extension for Legged Robot Navigation
 
 ## Overview
 
