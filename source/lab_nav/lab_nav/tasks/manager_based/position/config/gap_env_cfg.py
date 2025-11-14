@@ -98,9 +98,9 @@ class UnitreeGo2GapEnvCfg(LocomotionPositionEnvCfg):
         
 
         # Position-tracking rewards
-        self.rewards.position_tracking.weight = 4.0
-        self.rewards.exploration.weight = 3.0
-        self.rewards.stalling_penalty.weight = -2.0
+        self.rewards.position_tracking.weight = 10.0
+        self.rewards.exploration.weight = 4.0
+        self.rewards.stalling_penalty.weight = -3.0
 
         # Others
         self.rewards.feet_acc.weight = -2.5e-5
@@ -121,3 +121,23 @@ class UnitreeGo2GapEnvCfg(LocomotionPositionEnvCfg):
         self.curriculum.terrain_levels.params["threshold"] = 0.5
         # self.curriculum.command_levels = None
 
+@configclass
+class UnitreeGo2GapEnvCfg_PLAY(UnitreeGo2GapEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        
+        self.scene.num_envs = 50
+        self.scene.env_spacing = 8.0
+           # spawn the robot randomly in the grid (instead of their terrain levels)
+        self.scene.terrain.max_init_terrain_level = None
+        # reduce the number of terrains to save memory
+        if self.scene.terrain.terrain_generator is not None:
+            self.scene.terrain.terrain_generator.num_rows = 5
+            self.scene.terrain.terrain_generator.num_cols = 5
+            self.scene.terrain.terrain_generator.curriculum = False
+
+        # disable randomization for play
+        self.observations.policy.enable_corruption = False
+        # remove random pushing
+        self.events.randomize_apply_external_force_torque = None
+        self.scene.height_scanner.debug_viz = True
