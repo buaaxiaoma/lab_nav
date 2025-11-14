@@ -96,21 +96,6 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     env_cfg.seed = agent_cfg.seed
     env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
 
-    # spawn the robot randomly in the grid (instead of their terrain levels)
-    env_cfg.scene.terrain.max_init_terrain_level = None
-    # reduce the number of terrains to save memory
-    if env_cfg.scene.terrain.terrain_generator is not None:
-        env_cfg.scene.terrain.terrain_generator.num_rows = 5
-        env_cfg.scene.terrain.terrain_generator.num_cols = 5
-        env_cfg.scene.terrain.terrain_generator.curriculum = False
-
-    # disable randomization for play
-    env_cfg.observations.policy.enable_corruption = False
-    # remove random pushing
-    env_cfg.events.randomize_apply_external_force_torque = None
-    env_cfg.events.push_robot = None
-    env_cfg.curriculum.command_levels = None
-    env_cfg.scene.height_scanner.debug_viz = True
     # specify directory for logging experiments
     log_root_path = os.path.join("logs", "rsl_rl", agent_cfg.experiment_name)
     log_root_path = os.path.abspath(log_root_path)
