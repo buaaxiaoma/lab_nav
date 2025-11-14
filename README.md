@@ -1,4 +1,4 @@
-# Isaac Lab Extension for Legged Robot Navigation
+# Isaac Lab Extension for Legged Robot Locomotion Based on Target Position Tracking
 
 ## Overview
 
