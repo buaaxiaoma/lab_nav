@@ -77,7 +77,7 @@ class UnitreeGo2GapEnvCfg(LocomotionPositionEnvCfg):
 
         # ------------------------------Rewards------------------------------
         # General
-        self.rewards.is_terminated.weight = 0
+        self.rewards.is_terminated.weight = -0.5
 
         # Joint penalties
         self.rewards.joint_torques_l2.weight = -2.5e-5
@@ -99,8 +99,8 @@ class UnitreeGo2GapEnvCfg(LocomotionPositionEnvCfg):
 
         # Position-tracking rewards
         self.rewards.position_tracking.weight = 4.0
-        self.rewards.exploration.weight = 1.5
-        self.rewards.stalling_penalty.weight = -1.0
+        self.rewards.exploration.weight = 3.0
+        self.rewards.stalling_penalty.weight = -2.0
 
         # Others
         self.rewards.feet_acc.weight = -2.5e-5

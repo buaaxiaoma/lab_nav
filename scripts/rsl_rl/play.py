@@ -110,6 +110,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     env_cfg.events.randomize_apply_external_force_torque = None
     env_cfg.events.push_robot = None
     env_cfg.curriculum.command_levels = None
+    env_cfg.scene.height_scanner.debug_viz = True
     # specify directory for logging experiments
     log_root_path = os.path.join("logs", "rsl_rl", agent_cfg.experiment_name)
     log_root_path = os.path.abspath(log_root_path)
