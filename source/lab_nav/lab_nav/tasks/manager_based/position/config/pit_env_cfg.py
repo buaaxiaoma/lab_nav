@@ -23,5 +23,5 @@ class UnitreeGo2PitEnvCfg_PLAY(UnitreeGo2GapEnvCfg_PLAY):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
-
+        self.scene.terrain.terrain_generator = PIT_CFG
         # disable sensor corruption
