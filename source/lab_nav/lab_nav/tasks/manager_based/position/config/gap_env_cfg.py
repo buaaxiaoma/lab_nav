@@ -45,6 +45,9 @@ class UnitreeGo2GapEnvCfg(LocomotionPositionEnvCfg):
         self.actions.joint_pos.joint_names = self.joint_names
 
         # ------------------------------Events------------------------------
+        self._disabled_events = {}
+        
+        self._disabled_events["randomize_reset_base"] = self.events.randomize_reset_base
         self.events.randomize_reset_base.params = {
             "pose_range": {
                 "x": (-0.0, 0.0),
@@ -62,19 +65,29 @@ class UnitreeGo2GapEnvCfg(LocomotionPositionEnvCfg):
             },
         }
         # self.events.randomize_rigid_body_mass_base.params["asset_cfg"].body_names = [self.base_link_name]
+        # self._disabled_events["randomize_rigid_body_mass_base"] = self.events.randomize_rigid_body_mass_base
         self.events.randomize_rigid_body_mass_base = None
+        
         # self.events.randomize_rigid_body_mass_others.params["asset_cfg"].body_names = [
         #     f"^(?!.*{self.base_link_name}).*"
         # ]
         self.events.randomize_rigid_body_mass_others = None
+        
         # self.events.randomize_com_positions.params["asset_cfg"].body_names = [self.base_link_name]
+        # self._disabled_events["randomize_com_positions"] = self.events.randomize_com_positions
         self.events.randomize_com_positions = None
+        
         # self.events.randomize_apply_external_force_torque.params["asset_cfg"].body_names = [self.base_link_name]
+        # self._disabled_events["randomize_apply_external_force_torque"] = self.events.randomize_apply_external_force_torque
         self.events.randomize_apply_external_force_torque = None
-        self.events.randomize_reset_joints = None
-        self.events.randomize_actuator_gains = None
-        self.events.randomize_push_robot = None
 
+        # self._disabled_events["randomize_reset_joints"] = self.events.randomize_reset_joints
+        self.events.randomize_reset_joints = None
+        # self._disabled_events["randomize_actuator_gains"] = self.events.randomize_actuator_gains
+        self.events.randomize_actuator_gains = None
+
+        # self._disabled_events["randomize_push_robot"] = self.events.randomize_push_robot
+        self.events.randomize_push_robot = None
         # ------------------------------Rewards------------------------------
         # General
         self.rewards.is_terminated.weight = -0.5
