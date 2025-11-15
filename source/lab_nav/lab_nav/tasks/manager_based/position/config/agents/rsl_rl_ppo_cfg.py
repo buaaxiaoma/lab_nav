@@ -5,8 +5,8 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, R
 @configclass
 class UnitreeGo2PitPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 48
-    max_iterations = 5000
-    save_interval = 50
+    max_iterations = 20000
+    save_interval = 200
     experiment_name = "unitree_go2_pit"
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,
