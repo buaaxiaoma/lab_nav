@@ -64,18 +64,18 @@ class UnitreeGo2GapEnvCfg(LocomotionPositionEnvCfg):
                 "yaw": (-0.0, 0.0),
             },
         }
-        # self.events.randomize_rigid_body_mass_base.params["asset_cfg"].body_names = [self.base_link_name]
+        self.events.randomize_rigid_body_mass_base.params["asset_cfg"].body_names = [self.base_link_name]
         # self._disabled_events["randomize_rigid_body_mass_base"] = self.events.randomize_rigid_body_mass_base
-        self.events.randomize_rigid_body_mass_base = None
+        # self.events.randomize_rigid_body_mass_base = None
         
         # self.events.randomize_rigid_body_mass_others.params["asset_cfg"].body_names = [
         #     f"^(?!.*{self.base_link_name}).*"
         # ]
         self.events.randomize_rigid_body_mass_others = None
         
-        # self.events.randomize_com_positions.params["asset_cfg"].body_names = [self.base_link_name]
+        self.events.randomize_com_positions.params["asset_cfg"].body_names = [self.base_link_name]
         # self._disabled_events["randomize_com_positions"] = self.events.randomize_com_positions
-        self.events.randomize_com_positions = None
+        # self.events.randomize_com_positions = None
         
         # self.events.randomize_apply_external_force_torque.params["asset_cfg"].body_names = [self.base_link_name]
         # self._disabled_events["randomize_apply_external_force_torque"] = self.events.randomize_apply_external_force_torque
@@ -90,7 +90,7 @@ class UnitreeGo2GapEnvCfg(LocomotionPositionEnvCfg):
         self.events.randomize_push_robot = None
         # ------------------------------Rewards------------------------------
         # General
-        self.rewards.is_terminated.weight = -0.5
+        self.rewards.is_terminated.weight = -5.0
 
         # Joint penalties
         self.rewards.joint_torques_l2.weight = -2.5e-5
@@ -112,11 +112,11 @@ class UnitreeGo2GapEnvCfg(LocomotionPositionEnvCfg):
 
         # Position-tracking rewards
         self.rewards.position_tracking.weight = 10.0
-        self.rewards.exploration.weight = 4.0
-        self.rewards.stalling_penalty.weight = -3.0
+        self.rewards.exploration.weight = 6.0
+        self.rewards.stalling_penalty.weight = -9.0
 
         # Others
-        self.rewards.feet_acc.weight = -2.5e-5
+        self.rewards.feet_acc.weight = -2.5e-7
         self.rewards.feet_acc.params["asset_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_slide.weight = -1e-2
         self.rewards.feet_slide.params["sensor_cfg"].body_names = [self.foot_link_name]
@@ -131,7 +131,7 @@ class UnitreeGo2GapEnvCfg(LocomotionPositionEnvCfg):
         # self.terminations.illegal_contact = None
 
         # ------------------------------Curriculums------------------------------
-        self.curriculum.terrain_levels.params["threshold"] = 0.5
+        self.curriculum.terrain_levels.params["threshold"] = 0.3
         # self.curriculum.command_levels = None
 
 @configclass
@@ -153,4 +153,4 @@ class UnitreeGo2GapEnvCfg_PLAY(UnitreeGo2GapEnvCfg):
         self.observations.policy.enable_corruption = False
         # remove random pushing
         self.events.randomize_apply_external_force_torque = None
-        self.scene.height_scanner.debug_viz = True
+        
