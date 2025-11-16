@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from isaaclab.assets import Articulation
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.terrains import TerrainImporter
+import isaaclab.envs.mdp as mdp
 
 from lab_nav.tasks.manager_based.position.mdp.commands import *
 
@@ -45,3 +46,13 @@ def terrain_levels_pos(env: ManagerBasedRLEnv, env_ids: Sequence[int], threshold
     terrain.update_env_origins(env_ids, move_up, move_down)
     # return the mean terrain level
     return torch.mean(terrain.terrain_levels.float())
+
+def override_value(env: ManagerBasedRLEnv, env_ids, current_value, value, num_steps):
+    if env.common_step_counter > num_steps:
+        if isinstance(current_value, dict) and isinstance(value, dict):
+            current_value.update(value)
+            return current_value
+        else:
+            # if not dict, directly return the new value
+            return value
+    return mdp.modify_term_cfg.NO_CHANGE

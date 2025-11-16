@@ -463,7 +463,53 @@ class CurriculumCfg:
         func=mdp.terrain_levels_pos,
         params={"threshold": 0.5, "asset_cfg": SceneEntityCfg("robot")}
     )
-
+    
+    update_randomize_reset_base = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "events.randomize_reset_base.params",
+            "modify_fn": mdp.override_value,
+            "modify_params": {"value": 
+                {"pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "z": (0.0, 0.2), "yaw": (-3.14, 3.14)},
+                "velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "z": (-0.5, 0.5),
+                "roll": (-0.5, 0.5), "pitch": (-0.5, 0.5), "yaw": (-0.5, 0.5)}},
+                "num_steps": 8000}
+        }
+    )
+    
+    change_actuator_gains = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "events.randomize_actuator_gains.params",
+            "modify_fn": mdp.override_value,
+            "modify_params": {"value": 
+                {"stiffness_distribution_params": (0.5, 2.0),
+                 "damping_distribution_params": (0.5, 2.0)}, 
+                "num_steps": 8000}
+        }
+    )
+    
+    start_apply_external_force_torque = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "events.randomize_apply_external_force_torque.params",
+            "modify_fn": mdp.override_value,
+            "modify_params": {"value":
+                {"force_range": (-10.0, 10.0),
+                "torque_range": (-10.0, 10.0)}, 
+                "num_steps": 10000}
+        }
+    )
+    
+    start_push_robot = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "events.randomize_push_robot.params",
+            "modify_fn": mdp.override_value,
+            "modify_params": {"value": 
+                {"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}}, "num_steps": 12000}
+        }
+    )
 ##
 # Environment configuration
 ##

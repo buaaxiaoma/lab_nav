@@ -45,9 +45,6 @@ class UnitreeGo2GapEnvCfg(LocomotionPositionEnvCfg):
         self.actions.joint_pos.joint_names = self.joint_names
 
         # ------------------------------Events------------------------------
-        self._disabled_events = {}
-        
-        self._disabled_events["randomize_reset_base"] = self.events.randomize_reset_base
         self.events.randomize_reset_base.params = {
             "pose_range": {
                 "x": (-0.0, 0.0),
@@ -65,32 +62,20 @@ class UnitreeGo2GapEnvCfg(LocomotionPositionEnvCfg):
             },
         }
         self.events.randomize_rigid_body_mass_base.params["asset_cfg"].body_names = [self.base_link_name]
-        # self._disabled_events["randomize_rigid_body_mass_base"] = self.events.randomize_rigid_body_mass_base
-        # self.events.randomize_rigid_body_mass_base = None
-        
-        # self.events.randomize_rigid_body_mass_others.params["asset_cfg"].body_names = [
-        #     f"^(?!.*{self.base_link_name}).*"
-        # ]
-        self.events.randomize_rigid_body_mass_others = None
-        
+        self.events.randomize_rigid_body_mass_others.params["asset_cfg"].body_names = [
+            f"^(?!.*{self.base_link_name}).*"
+        ]
         self.events.randomize_com_positions.params["asset_cfg"].body_names = [self.base_link_name]
-        # self._disabled_events["randomize_com_positions"] = self.events.randomize_com_positions
-        # self.events.randomize_com_positions = None
-        
-        # self.events.randomize_apply_external_force_torque.params["asset_cfg"].body_names = [self.base_link_name]
-        # self._disabled_events["randomize_apply_external_force_torque"] = self.events.randomize_apply_external_force_torque
-        self.events.randomize_apply_external_force_torque = None
-
-        # self._disabled_events["randomize_reset_joints"] = self.events.randomize_reset_joints
-        self.events.randomize_reset_joints = None
-        # self._disabled_events["randomize_actuator_gains"] = self.events.randomize_actuator_gains
-        self.events.randomize_actuator_gains = None
-
-        # self._disabled_events["randomize_push_robot"] = self.events.randomize_push_robot
-        self.events.randomize_push_robot = None
+        #start after certain steps
+        self.events.randomize_apply_external_force_torque.params["asset_cfg"].body_names = [self.base_link_name]
+        self.events.randomize_apply_external_force_torque.params["force_range"] = (0, 0)
+        self.events.randomize_apply_external_force_torque.params["torque_range"] = (0, 0)
+        self.events.randomize_actuator_gains.params["stiffness_distribution_params"] = (1.0, 1.0)
+        self.events.randomize_actuator_gains.params["damping_distribution_params"] = (1.0, 1.0)
+        self.events.randomize_push_robot.params["velocity_range"] = {"x": (0, 0), "y": (0, 0)}
         # ------------------------------Rewards------------------------------
         # General
-        self.rewards.is_terminated.weight = -5.0
+        self.rewards.is_terminated.weight = -10.0
 
         # Joint penalties
         self.rewards.joint_torques_l2.weight = -2.5e-5
@@ -106,7 +91,7 @@ class UnitreeGo2GapEnvCfg(LocomotionPositionEnvCfg):
 
         # Contact sensor
         self.rewards.undesired_contacts.weight = -0.5
-        self.rewards.undesired_contacts.params["sensor_cfg"].body_names = [".*_hip"]
+        self.rewards.undesired_contacts.params["sensor_cfg"].body_names = [".*_hip", ".*_thigh", ".*_calf"]
         self.rewards.undesired_contacts.params["threshold"] = 1.0
         
 
@@ -127,7 +112,7 @@ class UnitreeGo2GapEnvCfg(LocomotionPositionEnvCfg):
             self.disable_zero_weight_rewards()
 
         # ------------------------------Terminations------------------------------
-        self.terminations.illegal_contact.params["sensor_cfg"].body_names = [".*_hip"]
+        self.terminations.illegal_contact.params["sensor_cfg"].body_names = [self.base_link_name]
         # self.terminations.illegal_contact = None
 
         # ------------------------------Curriculums------------------------------
