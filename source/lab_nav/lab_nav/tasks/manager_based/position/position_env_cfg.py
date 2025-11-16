@@ -463,6 +463,23 @@ class CurriculumCfg:
         func=mdp.terrain_levels_pos,
         params={"threshold": 0.5, "asset_cfg": SceneEntityCfg("robot")}
     )
+    
+    # start_domain_randomization_events = CurrTerm(
+    #     func=mdp.update_domain_randomization_events,
+    #     params={"start_iteration": 5, 
+    #             "event_names": [
+    #         "randomize_rigid_body_material",
+    #         "randomize_rigid_body_mass_base",
+    #         "randomize_rigid_body_mass_others",
+    #         "randomize_com_positions",
+    #         "randomize_apply_external_force_torque",
+    #         "randomize_reset_joints",
+    #         "randomize_actuator_gains",
+    #         "randomize_push_robot",
+    #         "randomize_reset_base",
+    #         ]
+    #     },
+    # )
 
 ##
 # Environment configuration
