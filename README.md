@@ -42,7 +42,7 @@ You can use the following commands to run all environments:
 #Train
 python scripts/rsl_rl/train.py --task=Lab-Position-Rough-Unitree-Go2-v0 --headless
 #Play
-python scripts/rsl_rl/play.py --task=Lab-Position-Rough-Unitree-Go2-v0
+python scripts/rsl_rl/play.py --task=Lab-Position-Rough-Unitree-Go2-Play-v0
 ```
 
 
