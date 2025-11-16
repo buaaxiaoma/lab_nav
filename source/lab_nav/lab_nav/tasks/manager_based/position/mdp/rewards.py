@@ -83,7 +83,7 @@ def stalling_penalty(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     distance = torch.norm(command.robot_pos - command.target_pos, dim=-1)  # (num_envs,)
 
     # Condition for when to apply the reward
-    condition = (speed < 0.1) & (distance > 0.5)
+    condition = (speed < 0.5) & (distance > 0.3)
     
     # Calculate reward using torch.where for vectorized operation
     reward = torch.where(condition, 1.0, 0.0)
