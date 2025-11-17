@@ -75,7 +75,10 @@ class UnitreeGo2GapEnvCfg(LocomotionPositionEnvCfg):
         self.events.randomize_push_robot.params["velocity_range"] = {"x": (0, 0), "y": (0, 0)}
         # ------------------------------Rewards------------------------------
         # General
-        self.rewards.is_terminated.weight = -10.0
+        self.rewards.is_terminated.weight = -400.0
+        self.rewards.base_height.weight = -10.0
+        self.rewards.heading_command_error_abs.weight = -5.0
+        self.rewards.flat_orientation.weight = -1.0
 
         # Joint penalties
         self.rewards.joint_torques_l2.weight = -2.5e-5
@@ -97,8 +100,8 @@ class UnitreeGo2GapEnvCfg(LocomotionPositionEnvCfg):
 
         # Position-tracking rewards
         self.rewards.position_tracking.weight = 10.0
-        self.rewards.exploration.weight = 6.0
-        self.rewards.stalling_penalty.weight = -9.0
+        self.rewards.exploration.weight = 2.0
+        self.rewards.stalling_penalty.weight = -5.0
 
         # Others
         self.rewards.feet_acc.weight = -2.5e-7
@@ -138,4 +141,4 @@ class UnitreeGo2GapEnvCfg_PLAY(UnitreeGo2GapEnvCfg):
         self.observations.policy.enable_corruption = False
         # remove random pushing
         self.events.randomize_apply_external_force_torque = None
-        
+        self.curriculum = None

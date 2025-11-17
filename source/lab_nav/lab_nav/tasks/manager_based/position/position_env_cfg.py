@@ -73,6 +73,14 @@ class MySceneCfg(InteractiveSceneCfg):
         debug_vis=True,
         mesh_prim_paths=["/World/ground"],
     )
+    height_scanner_base = RayCasterCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/base",
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
+        ray_alignment="yaw",
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.05, size=(0.1, 0.1)),
+        debug_vis=False,
+        mesh_prim_paths=["/World/ground"],
+    )
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
     # lights
     sky_light = AssetBaseCfg(
@@ -276,17 +284,6 @@ class EventCfg:
         },
     )
 
-    # Skip: inertia updated via mass randomization by setting recompute_inertia=True
-    # randomize_rigid_body_inertia = EventTerm(
-    #     func=mdp.randomize_rigid_body_inertia,
-    #     mode="startup",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-    #         "inertia_distribution_params": (0.5, 1.5),
-    #         "operation": "scale",
-    #     },
-    # )
-
     randomize_com_positions = EventTerm(
         func=mdp.randomize_rigid_body_com,
         mode="startup",
@@ -359,7 +356,10 @@ class RewardsCfg:
     """Reward terms for the MDP."""
     # General
     is_terminated = RewTerm(func=mdp.is_terminated, weight=0.0)
-
+    base_height = RewTerm(func=mdp.base_height, weight=0.0, params={"target_height": 0.33, "sensor_cfg": SceneEntityCfg("height_scanner_base")})
+    heading_command_error_abs = RewTerm(func=mdp.heading_command_error_abs, weight=0.0, params={"command_name": "target_position"})
+    flat_orientation = RewTerm(func=mdp.flat_orientation_l2, weight=0.0, params={"asset_cfg": SceneEntityCfg("robot")})
+    
     # Joint penalties
     joint_torques_l2 = RewTerm(
         func=mdp.joint_torques_l2, weight=0.0, params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*")}
@@ -464,6 +464,33 @@ class CurriculumCfg:
         params={"threshold": 0.5, "asset_cfg": SceneEntityCfg("robot")}
     )
     
+    change_stalling_penalty = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "rewards.stalling_penalty.weight",
+            "modify_fn": mdp.override_value,
+            "modify_params": {"value": -10.0, "num_steps": 2000*48*4096}
+        }
+    )
+    
+    change_feet_acc_penalty = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "rewards.feet_acc.weight",
+            "modify_fn": mdp.override_value,
+            "modify_params": {"value": -2.5e-6, "num_steps": 4000*48*4096}
+        }
+    )
+    
+    change_flat_orientation_penalty = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "rewards.flat_orientation.weight",
+            "modify_fn": mdp.override_value,
+            "modify_params": {"value": 0.0, "num_steps": 2000*48*4096}
+        }
+    )
+    
     update_randomize_reset_base = CurrTerm(
         func=mdp.modify_term_cfg,
         params={
@@ -473,7 +500,7 @@ class CurriculumCfg:
                 {"pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "z": (0.0, 0.2), "yaw": (-3.14, 3.14)},
                 "velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "z": (-0.5, 0.5),
                 "roll": (-0.5, 0.5), "pitch": (-0.5, 0.5), "yaw": (-0.5, 0.5)}},
-                "num_steps": 8000}
+                "num_steps": 8000*48*4096}
         }
     )
     
@@ -485,7 +512,7 @@ class CurriculumCfg:
             "modify_params": {"value": 
                 {"stiffness_distribution_params": (0.5, 2.0),
                  "damping_distribution_params": (0.5, 2.0)}, 
-                "num_steps": 8000}
+                "num_steps": 8000*48*4096}
         }
     )
     
@@ -497,7 +524,7 @@ class CurriculumCfg:
             "modify_params": {"value":
                 {"force_range": (-10.0, 10.0),
                 "torque_range": (-10.0, 10.0)}, 
-                "num_steps": 10000}
+                "num_steps": 10000*48*4096}
         }
     )
     
@@ -507,7 +534,7 @@ class CurriculumCfg:
             "address": "events.randomize_push_robot.params",
             "modify_fn": mdp.override_value,
             "modify_params": {"value": 
-                {"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}}, "num_steps": 12000}
+                {"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}}, "num_steps": 12000*48*4096}
         }
     )
 ##

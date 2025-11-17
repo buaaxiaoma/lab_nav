@@ -7,8 +7,8 @@ if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
     
 from isaaclab.managers import SceneEntityCfg
-from isaaclab.sensors import ContactSensor
-from isaaclab.assets import Articulation
+from isaaclab.sensors import RayCaster
+from isaaclab.assets import Articulation, RigidObject
 from lab_nav.tasks.manager_based.position.mdp.commands import *
 
 def task_reward(env: ManagerBasedRLEnv, command_name: str, Tr: float = 1.0) -> torch.Tensor:
@@ -33,7 +33,7 @@ def task_reward(env: ManagerBasedRLEnv, command_name: str, Tr: float = 1.0) -> t
     
     # Calculate reward using torch.where for vectorized operation
     reward = torch.where(condition, 1.0 / Tr / (1.0 + distance), 0.0)
-
+    
     return reward
 
 def exploration_reward(env: ManagerBasedRLEnv, command_name: str, Tr: float = 1.0) -> torch.Tensor:
@@ -66,6 +66,7 @@ def exploration_reward(env: ManagerBasedRLEnv, command_name: str, Tr: float = 1.
     cosine_sim = dot_product / (robot_vel_norm * target_vec_norm + 1e-8)
     
     reward = torch.where(condition, 0.0, cosine_sim)
+    reward *= torch.clamp(-env.scene["robot"].data.projected_gravity_b[:, 2], 0, 0.7) / 0.7  # scale with gravity projection
     return reward
 
 def stalling_penalty(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
@@ -83,7 +84,7 @@ def stalling_penalty(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     distance = torch.norm(command.robot_pos - command.target_pos, dim=-1)  # (num_envs,)
 
     # Condition for when to apply the reward
-    condition = (speed < 0.5) & (distance > 0.3)
+    condition = (speed < 0.2) & (distance > 0.3)
     
     # Calculate reward using torch.where for vectorized operation
     reward = torch.where(condition, 1.0, 0.0)
@@ -98,3 +99,46 @@ def feet_acceleration_penalty(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg)
     penalty = torch.norm(feet_acc, dim=-1)  # (num_envs, num_feet)
     reward = torch.sum(torch.square(penalty), dim=-1)  # (num_envs,)
     return reward
+
+def base_height(
+    env: ManagerBasedRLEnv,
+    target_height: float,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    sensor_cfg: SceneEntityCfg | None = None,
+) -> torch.Tensor:
+    """Penalize asset height from its target using L2 squared kernel.
+
+    Note:
+        For flat terrain, target height is in the world frame. For rough terrain,
+        sensor readings can adjust the target height to account for the terrain.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    if sensor_cfg is not None:
+        sensor: RayCaster = env.scene[sensor_cfg.name]
+        # Adjust the target height using the sensor data
+        ray_hits = sensor.data.ray_hits_w[..., 2]
+        if torch.isnan(ray_hits).any() or torch.isinf(ray_hits).any() or torch.max(torch.abs(ray_hits)) > 1e6:
+            adjusted_target_height = asset.data.root_pos_w[:, 2]  # fallback to current height if sensor data is invalid
+        else:
+            adjusted_target_height = target_height + torch.mean(ray_hits, dim=1)
+    else:
+        # Use the provided target height directly for flat terrain
+        adjusted_target_height = target_height
+    # Compute the L2 squared penalty
+    reward = torch.square(asset.data.root_pos_w[:, 2] - adjusted_target_height)
+    return reward
+
+def heading_command_error_abs(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
+    """Compute the absolute heading error between the robot's heading and the commanded heading.
+
+    Args:
+        env (ManagerBasedRLEnv): The environment instance.
+        command_name (str): The name of the command to retrieve target headings.
+
+    Returns:
+        torch.Tensor: The computed absolute heading error tensor of shape (num_envs,).
+    """
+    command = env.command_manager.get_command(command_name)
+    heading_b = command[:, 3]  # (num_envs,)
+    return heading_b.abs()
