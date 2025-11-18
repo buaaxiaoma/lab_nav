@@ -100,13 +100,13 @@ def feet_acceleration_penalty(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg)
     reward = torch.sum(torch.square(penalty), dim=-1)  # (num_envs,)
     return reward
 
-def base_height(
+def base_height_abs(
     env: ManagerBasedRLEnv,
     target_height: float,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     sensor_cfg: SceneEntityCfg | None = None,
 ) -> torch.Tensor:
-    """Penalize asset height from its target using L2 squared kernel.
+    """Penalize asset height from its target using L1 norm.
 
     Note:
         For flat terrain, target height is in the world frame. For rough terrain,
@@ -126,7 +126,7 @@ def base_height(
         # Use the provided target height directly for flat terrain
         adjusted_target_height = target_height
     # Compute the L2 squared penalty
-    reward = torch.square(asset.data.root_pos_w[:, 2] - adjusted_target_height)
+    reward = torch.abs(asset.data.root_pos_w[:, 2] - adjusted_target_height)
     return reward
 
 def heading_command_error_abs(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:

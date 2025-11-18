@@ -118,9 +118,8 @@ class ActionsCfg:
     """Action specifications for the MDP."""
 
     joint_pos = mdp.JointPositionActionCfg(
-        asset_name="robot", joint_names=[".*"], scale=0.5, use_default_offset=True, clip=None, preserve_order=True
+        asset_name="robot", joint_names=[".*"], scale=0.25, use_default_offset=True, clip=None
     )
-
 
 @configclass
 class ObservationsCfg:
@@ -356,9 +355,11 @@ class RewardsCfg:
     """Reward terms for the MDP."""
     # General
     is_terminated = RewTerm(func=mdp.is_terminated, weight=0.0)
-    base_height = RewTerm(func=mdp.base_height, weight=0.0, params={"target_height": 0.33, "sensor_cfg": SceneEntityCfg("height_scanner_base")})
+    base_height = RewTerm(func=mdp.base_height_abs, weight=0.0, params={"target_height": 0.33, "sensor_cfg": SceneEntityCfg("height_scanner_base")})
     heading_command_error_abs = RewTerm(func=mdp.heading_command_error_abs, weight=0.0, params={"command_name": "target_position"})
     flat_orientation = RewTerm(func=mdp.flat_orientation_l2, weight=0.0, params={"asset_cfg": SceneEntityCfg("robot")})
+    base_lin_vel_z = RewTerm(func=mdp.lin_vel_z_l2, weight=0.0)
+    base_ang_vel_xy = RewTerm(func=mdp.ang_vel_xy_l2, weight=0.0)
     
     # Joint penalties
     joint_torques_l2 = RewTerm(
@@ -469,7 +470,7 @@ class CurriculumCfg:
         params={
             "address": "rewards.stalling_penalty.weight",
             "modify_fn": mdp.override_value,
-            "modify_params": {"value": -10.0, "num_steps": 2000*48*4096}
+            "modify_params": {"value": -10.0, "num_steps": 2000*48}
         }
     )
     
@@ -478,16 +479,7 @@ class CurriculumCfg:
         params={
             "address": "rewards.feet_acc.weight",
             "modify_fn": mdp.override_value,
-            "modify_params": {"value": -2.5e-6, "num_steps": 4000*48*4096}
-        }
-    )
-    
-    change_flat_orientation_penalty = CurrTerm(
-        func=mdp.modify_term_cfg,
-        params={
-            "address": "rewards.flat_orientation.weight",
-            "modify_fn": mdp.override_value,
-            "modify_params": {"value": 0.0, "num_steps": 2000*48*4096}
+            "modify_params": {"value": -2.5e-6, "num_steps": 4000*48}
         }
     )
     
@@ -498,9 +490,9 @@ class CurriculumCfg:
             "modify_fn": mdp.override_value,
             "modify_params": {"value": 
                 {"pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "z": (0.0, 0.2), "yaw": (-3.14, 3.14)},
-                "velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "z": (-0.5, 0.5),
+                "velocity_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "z": (-0.0, 0.0),
                 "roll": (-0.5, 0.5), "pitch": (-0.5, 0.5), "yaw": (-0.5, 0.5)}},
-                "num_steps": 8000*48*4096}
+                "num_steps": 8000*48}
         }
     )
     
@@ -512,7 +504,7 @@ class CurriculumCfg:
             "modify_params": {"value": 
                 {"stiffness_distribution_params": (0.5, 2.0),
                  "damping_distribution_params": (0.5, 2.0)}, 
-                "num_steps": 8000*48*4096}
+                "num_steps": 8000*48}
         }
     )
     
@@ -524,7 +516,7 @@ class CurriculumCfg:
             "modify_params": {"value":
                 {"force_range": (-10.0, 10.0),
                 "torque_range": (-10.0, 10.0)}, 
-                "num_steps": 10000*48*4096}
+                "num_steps": 10000*48}
         }
     )
     
@@ -534,7 +526,7 @@ class CurriculumCfg:
             "address": "events.randomize_push_robot.params",
             "modify_fn": mdp.override_value,
             "modify_params": {"value": 
-                {"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}}, "num_steps": 12000*48*4096}
+                {"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}}, "num_steps": 12000*48}
         }
     )
 ##

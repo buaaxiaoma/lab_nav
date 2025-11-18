@@ -6,7 +6,7 @@ from lab_nav.tasks.manager_based.position.position_env_cfg import LocomotionPosi
 # Pre-defined configs
 ##
 # use local assets
-from lab_nav.assets.unitree import UNITREE_GO2_CFG  # isort: skip
+from lab_nav.assets.robots.unitree import UNITREE_GO2_CFG  # isort: skip
 
 
 @configclass
@@ -31,7 +31,7 @@ class UnitreeGo2GapEnvCfg(LocomotionPositionEnvCfg):
         self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/" + self.base_link_name
 
         # ------------------------------Observations------------------------------
-        self.observations.policy.base_ang_vel.scale = 0.25
+        self.observations.policy.base_ang_vel.scale = 0.2
         self.observations.policy.joint_pos.scale = 1.0
         self.observations.policy.joint_vel.scale = 0.05
         # self.observations.policy.height_scan = None
@@ -76,37 +76,38 @@ class UnitreeGo2GapEnvCfg(LocomotionPositionEnvCfg):
         # ------------------------------Rewards------------------------------
         # General
         self.rewards.is_terminated.weight = -400.0
-        self.rewards.base_height.weight = -10.0
-        self.rewards.heading_command_error_abs.weight = -5.0
-        self.rewards.flat_orientation.weight = -1.0
+        self.rewards.base_height.weight = -3.0
+        self.rewards.heading_command_error_abs.weight = -2.0
+        self.rewards.flat_orientation.weight = -2.0
+        self.rewards.base_lin_vel_z.weight = -1.0
+        self.rewards.base_ang_vel_xy.weight = -0.05
 
         # Joint penalties
-        self.rewards.joint_torques_l2.weight = -2.5e-5
-        self.rewards.joint_vel_l2.weight = 0
+        self.rewards.joint_torques_l2.weight = -2e-4
+        self.rewards.joint_vel_l2.weight = -1e-4
         self.rewards.joint_acc_l2.weight = -2.5e-7
-        # self.rewards.create_joint_deviation_l1_rewterm("joint_deviation_hip_l1", -0.2, [".*_hip_joint"])
-        self.rewards.joint_pos_limits.weight = -5.0
+        self.rewards.joint_pos_limits.weight = -10.0
         self.rewards.joint_vel_limits.weight = 0
         
         # Action penalties
         self.rewards.applied_torque_limits.weight = -0.5
-        self.rewards.action_rate_l2.weight = -0.01
+        self.rewards.action_rate_l2.weight = -0.05
 
         # Contact sensor
-        self.rewards.undesired_contacts.weight = -0.5
-        self.rewards.undesired_contacts.params["sensor_cfg"].body_names = [".*_hip", ".*_thigh", ".*_calf"]
+        self.rewards.undesired_contacts.weight = -1.0
+        self.rewards.undesired_contacts.params["sensor_cfg"].body_names = ["Head_.*", ".*_hip", ".*_thigh", ".*_calf"]
         self.rewards.undesired_contacts.params["threshold"] = 1.0
         
 
         # Position-tracking rewards
-        self.rewards.position_tracking.weight = 10.0
-        self.rewards.exploration.weight = 2.0
+        self.rewards.position_tracking.weight = 15.0
+        self.rewards.exploration.weight = 3.0
         self.rewards.stalling_penalty.weight = -5.0
 
         # Others
         self.rewards.feet_acc.weight = -2.5e-7
         self.rewards.feet_acc.params["asset_cfg"].body_names = [self.foot_link_name]
-        self.rewards.feet_slide.weight = -1e-2
+        self.rewards.feet_slide.weight = -0.1
         self.rewards.feet_slide.params["sensor_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_slide.params["asset_cfg"].body_names = [self.foot_link_name]
 
