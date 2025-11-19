@@ -92,19 +92,20 @@ class TerrainBasedPoseCommand(UniformPose2dCommand):
             # set heading command to point towards target
             target_vec = self.pos_command_w[env_ids] - self.robot.data.root_pos_w[env_ids]
             target_direction = torch.atan2(target_vec[:, 1], target_vec[:, 0])
-            flipped_target_direction = wrap_to_pi(target_direction + torch.pi)
+            # flipped_target_direction = wrap_to_pi(target_direction + torch.pi)
 
-            # compute errors to find the closest direction to the current heading
-            # this is done to avoid the discontinuity at the -pi/pi boundary
-            curr_to_target = wrap_to_pi(target_direction - self.robot.data.heading_w[env_ids]).abs()
-            curr_to_flipped_target = wrap_to_pi(flipped_target_direction - self.robot.data.heading_w[env_ids]).abs()
+            # # compute errors to find the closest direction to the current heading
+            # # this is done to avoid the discontinuity at the -pi/pi boundary
+            # curr_to_target = wrap_to_pi(target_direction - self.robot.data.heading_w[env_ids]).abs()
+            # curr_to_flipped_target = wrap_to_pi(flipped_target_direction - self.robot.data.heading_w[env_ids]).abs()
 
-            # set the heading command to the closest direction
-            self.heading_command_w[env_ids] = torch.where(
-                curr_to_target < curr_to_flipped_target,
-                target_direction,
-                flipped_target_direction,
-            )
+            # # set the heading command to the closest direction
+            # self.heading_command_w[env_ids] = torch.where(
+            #     curr_to_target < curr_to_flipped_target,
+            #     target_direction,
+            #     flipped_target_direction,
+            # )
+            self.heading_command_w[env_ids] = target_direction
         else:
             # random heading command
             r = torch.empty(len(env_ids), device=self.device)
