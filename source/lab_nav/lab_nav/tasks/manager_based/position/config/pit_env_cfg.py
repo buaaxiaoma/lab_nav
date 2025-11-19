@@ -14,9 +14,9 @@ class UnitreeGo2PitEnvCfg(UnitreeGo2RoughEnvCfg):
         
         self.scene.terrain.terrain_generator = PIT_CFG
         
-        self.rewards.flat_orientation = None
-        self.rewards.base_lin_vel_z = None
-        self.rewards.base_ang_vel_xy = None
+        self.rewards.flat_orientation.weight = 0
+        self.rewards.base_lin_vel_z.weight = 0
+        self.rewards.base_ang_vel_xy.weight = 0
 
         # If the weight of rewards is 0, set rewards to None
         if self.__class__.__name__ == "UnitreeGo2PitEnvCfg":

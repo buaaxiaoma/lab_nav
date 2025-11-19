@@ -78,19 +78,19 @@ class UnitreeGo2RoughEnvCfg(LocomotionPositionEnvCfg):
         self.rewards.is_terminated.weight = -400.0
         
         # Base
-        self.rewards.base_height.weight = -3.0
+        self.rewards.base_height.weight = -2.5
         self.rewards.flat_orientation.weight = -0.25
         self.rewards.base_lin_vel_z.weight = -0.5
         self.rewards.base_ang_vel_xy.weight = -0.01
         
         # Command
-        self.rewards.heading_command_error_abs.weight = -0.75
+        self.rewards.heading_command_error_abs.weight = -0.8
 
         # Joint penalties
         self.rewards.joint_torques_l2.weight = -2e-4
         self.rewards.joint_vel_l2.weight = -1e-4
         self.rewards.joint_acc_l2.weight = -2.5e-7
-        self.rewards.joint_pos_limits.weight = -15.0
+        self.rewards.joint_pos_limits.weight = -10.0
         self.rewards.joint_vel_limits.weight = 0
         
         # Action penalties
@@ -105,7 +105,7 @@ class UnitreeGo2RoughEnvCfg(LocomotionPositionEnvCfg):
 
         # Position-tracking rewards
         self.rewards.position_tracking.weight = 15.0
-        self.rewards.exploration.weight = 3.0
+        self.rewards.exploration.weight = 4.0
         self.rewards.stalling_penalty.weight = -5.0
 
         # Others

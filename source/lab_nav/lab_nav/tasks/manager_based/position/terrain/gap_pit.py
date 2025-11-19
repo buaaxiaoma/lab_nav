@@ -76,7 +76,7 @@ GAP_CFG = TerrainGeneratorCfg(
     curriculum=True,
     sub_terrains={
         "gap": terrain_gen.MeshGapTerrainCfg(
-            gap_width_range=(0.3, 1.2),
+            gap_width_range=(0.1, 1.2),
             platform_width=3.0,
             flat_patch_sampling={
                 "target": FlatPatchSamplingCfg(
@@ -98,7 +98,7 @@ PIT_CFG = TerrainGeneratorCfg(
     curriculum=True,
     sub_terrains={
         "pit": terrain_gen.MeshPitTerrainCfg(
-            pit_depth_range=(0.2, 0.9),
+            pit_depth_range=(0.05, 0.9),
             platform_width=2.0,
             flat_patch_sampling={
                 "target": FlatPatchSamplingCfg(
