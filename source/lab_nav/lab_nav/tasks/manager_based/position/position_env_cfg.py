@@ -108,7 +108,7 @@ class CommandsCfg:
         debug_vis=True,
         min_dist=1.0,
         ranges=mdp.TerrainBasedPoseCommandCfg.Ranges(
-            pos_x=(-4.0, 4.0), pos_y=(-4.0, 4.0), heading=(-math.pi, math.pi)
+            pos_x=(-4.5, 4.5), pos_y=(-4.5, 4.5), heading=(-math.pi, math.pi)
         ),
     )
 
@@ -345,7 +345,7 @@ class EventCfg:
     randomize_push_robot = EventTerm(
         func=mdp.push_by_setting_velocity,
         mode="interval",
-        interval_range_s=(3.0, 5.0),
+        interval_range_s=(4.0, 5.0),
         params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
     )
 
@@ -355,8 +355,12 @@ class RewardsCfg:
     """Reward terms for the MDP."""
     # General
     is_terminated = RewTerm(func=mdp.is_terminated, weight=0.0)
-    base_height = RewTerm(func=mdp.base_height_abs, weight=0.0, params={"target_height": 0.33, "sensor_cfg": SceneEntityCfg("height_scanner_base")})
+    
+    #command
     heading_command_error_abs = RewTerm(func=mdp.heading_command_error_abs, weight=0.0, params={"command_name": "target_position"})
+    
+    #base
+    base_height = RewTerm(func=mdp.base_height_abs, weight=0.0, params={"target_height": 0.33, "sensor_cfg": SceneEntityCfg("height_scanner_base")})
     flat_orientation = RewTerm(func=mdp.flat_orientation_l2, weight=0.0, params={"asset_cfg": SceneEntityCfg("robot")})
     base_lin_vel_z = RewTerm(func=mdp.lin_vel_z_l2, weight=0.0)
     base_ang_vel_xy = RewTerm(func=mdp.ang_vel_xy_l2, weight=0.0)
@@ -421,6 +425,15 @@ class RewardsCfg:
     )
 
     # feet rewards
+    feet_air_time = RewTerm(
+        func=mdp.feet_air_time,
+        weight=0.1,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_foot"),
+                "command_name": "target_position",
+                "threshold": 0.5,
+                },
+    )
+    
     feet_acc = RewTerm(
         func=mdp.feet_acceleration_penalty,
         weight=0.0,
@@ -470,16 +483,25 @@ class CurriculumCfg:
         params={
             "address": "rewards.stalling_penalty.weight",
             "modify_fn": mdp.override_value,
-            "modify_params": {"value": -10.0, "num_steps": 2000*48}
+            "modify_params": {"value": -12.0, "num_steps": 2000*48}
         }
     )
     
-    change_feet_acc_penalty = CurrTerm(
+    change_task_reward = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "rewards.position_tracking.weight",
+            "modify_fn": mdp.override_value,
+            "modify_params": {"value": 20.0, "num_steps": 2000*48}
+        }
+    )
+    
+    change_feet_acc = CurrTerm(
         func=mdp.modify_term_cfg,
         params={
             "address": "rewards.feet_acc.weight",
             "modify_fn": mdp.override_value,
-            "modify_params": {"value": -2.5e-6, "num_steps": 4000*48}
+            "modify_params": {"value": -2.5e-6, "num_steps": 2000*48}
         }
     )
     
@@ -508,27 +530,27 @@ class CurriculumCfg:
         }
     )
     
-    start_apply_external_force_torque = CurrTerm(
-        func=mdp.modify_term_cfg,
-        params={
-            "address": "events.randomize_apply_external_force_torque.params",
-            "modify_fn": mdp.override_value,
-            "modify_params": {"value":
-                {"force_range": (-10.0, 10.0),
-                "torque_range": (-10.0, 10.0)}, 
-                "num_steps": 10000*48}
-        }
-    )
+    # start_apply_external_force_torque = CurrTerm(
+    #     func=mdp.modify_term_cfg,
+    #     params={
+    #         "address": "events.randomize_apply_external_force_torque.params",
+    #         "modify_fn": mdp.override_value,
+    #         "modify_params": {"value":
+    #             {"force_range": (-5.0, 5.0),
+    #             "torque_range": (-5.0, 5.0)}, 
+    #             "num_steps": 10000*48}
+    #     }
+    # )
     
-    start_push_robot = CurrTerm(
-        func=mdp.modify_term_cfg,
-        params={
-            "address": "events.randomize_push_robot.params",
-            "modify_fn": mdp.override_value,
-            "modify_params": {"value": 
-                {"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}}, "num_steps": 12000*48}
-        }
-    )
+    # start_push_robot = CurrTerm(
+    #     func=mdp.modify_term_cfg,
+    #     params={
+    #         "address": "events.randomize_push_robot.params",
+    #         "modify_fn": mdp.override_value,
+    #         "modify_params": {"value": 
+    #             {"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}}, "num_steps": 12000*48}
+    #     }
+    # )
 ##
 # Environment configuration
 ##

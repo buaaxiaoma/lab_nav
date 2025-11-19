@@ -24,7 +24,7 @@ ROUGH_CFG = TerrainGeneratorCfg(
             proportion=0.4,
             flat_patch_sampling={
                 "target": FlatPatchSamplingCfg(
-                    x_range=(-4.0, 4.0), y_range=(-4.0, 4.0),
+                    x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
                     num_patches=100, patch_radius=0.1, max_height_diff=0.1)
             },
         ),
@@ -37,7 +37,7 @@ ROUGH_CFG = TerrainGeneratorCfg(
             holes=False,
             flat_patch_sampling={
                 "target": FlatPatchSamplingCfg(
-                    x_range=(-4.0, 4.0), y_range=(-4.0, 4.0),
+                    x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
                     num_patches=100, patch_radius=0.1, max_height_diff=0.1)
             },
         ),
@@ -50,7 +50,7 @@ ROUGH_CFG = TerrainGeneratorCfg(
             holes=False,
             flat_patch_sampling={
                 "target": FlatPatchSamplingCfg(
-                    x_range=(-4.0, 4.0), y_range=(-4.0, 4.0),
+                    x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
                     num_patches=100, patch_radius=0.1, max_height_diff=0.1)
             },
         ),
@@ -58,7 +58,7 @@ ROUGH_CFG = TerrainGeneratorCfg(
             proportion=0.2, grid_width=0.45, grid_height_range=(0.05, 0.2), platform_width=3.0,
             flat_patch_sampling={
                 "target": FlatPatchSamplingCfg(
-                    x_range=(-4.0, 4.0), y_range=(-4.0, 4.0),
+                    x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
                     num_patches=100, patch_radius=0.05, max_height_diff=0.1)
             },
         ),
@@ -80,7 +80,7 @@ GAP_CFG = TerrainGeneratorCfg(
             platform_width=3.0,
             flat_patch_sampling={
                 "target": FlatPatchSamplingCfg(
-                    x_range=(-4.0, 4.0), y_range=(-4.0, 4.0),
+                    x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
                     num_patches=100, patch_radius=0.25, max_height_diff=0.1)
             },
         ),
@@ -102,7 +102,7 @@ PIT_CFG = TerrainGeneratorCfg(
             platform_width=2.0,
             flat_patch_sampling={
                 "target": FlatPatchSamplingCfg(
-                    x_range=(-4.0, 4.0), y_range=(-4.0, 4.0),
+                    x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
                     num_patches=100, patch_radius=0.25, max_height_diff=0.1)
             },
         ),

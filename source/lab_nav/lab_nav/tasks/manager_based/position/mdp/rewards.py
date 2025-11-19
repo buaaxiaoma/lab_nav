@@ -53,7 +53,7 @@ def exploration_reward(env: ManagerBasedRLEnv, command_name: str, Tr: float = 1.
     distance = torch.norm(target_vec, dim=-1)  # (num_envs,)
 
     # Condition for when to apply the reward
-    condition = (env.episode_length_buf * env.step_dt >= env.max_episode_length_s - Tr) & (distance <= 1.0)
+    condition = (env.episode_length_buf * env.step_dt >= env.max_episode_length_s - Tr) & (distance <= 1.0) & (torch.norm(robot_vel, dim=-1) < 0.2)
     
     # Calculate cosine similarity
     # Dot product for the numerator
