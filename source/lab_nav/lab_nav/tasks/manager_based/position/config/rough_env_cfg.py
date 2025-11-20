@@ -79,22 +79,22 @@ class UnitreeGo2RoughEnvCfg(LocomotionPositionEnvCfg):
         
         # Base
         self.rewards.base_height.weight = -2.5
-        self.rewards.flat_orientation.weight = -0.25
-        self.rewards.base_lin_vel_z.weight = -0.5
-        self.rewards.base_ang_vel_xy.weight = -0.01
+        self.rewards.flat_orientation.weight = -0.3
+        self.rewards.base_lin_vel_z.weight = -0.7
+        self.rewards.base_ang_vel_xy.weight = -0.02
         
         # Command
-        self.rewards.heading_command_error_abs.weight = -0.8
+        self.rewards.heading_command_error_abs.weight = -1.0
 
         # Joint penalties
         self.rewards.joint_torques_l2.weight = -2e-4
         self.rewards.joint_vel_l2.weight = -1e-4
         self.rewards.joint_acc_l2.weight = -2.5e-7
         self.rewards.joint_pos_limits.weight = -10.0
-        self.rewards.joint_vel_limits.weight = 0
+        self.rewards.joint_vel_limits.weight = -2e-5
         
         # Action penalties
-        self.rewards.applied_torque_limits.weight = -0.5
+        self.rewards.applied_torque_limits.weight = -1.0
         self.rewards.action_rate_l2.weight = -2e-5
 
         # Contact sensor
@@ -105,11 +105,12 @@ class UnitreeGo2RoughEnvCfg(LocomotionPositionEnvCfg):
 
         # Position-tracking rewards
         self.rewards.position_tracking.weight = 15.0
-        self.rewards.exploration.weight = 4.0
+        self.rewards.exploration.weight = 3.0
         self.rewards.stalling_penalty.weight = -5.0
 
         # Others
         self.rewards.feet_air_time.weight = 0.5
+        self.rewards.air_time_variance.weight = -1.0
         self.rewards.feet_acc.weight = -2.5e-7
         self.rewards.feet_acc.params["asset_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_slide.weight = -0.1

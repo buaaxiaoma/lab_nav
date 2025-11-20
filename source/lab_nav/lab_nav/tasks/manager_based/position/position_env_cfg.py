@@ -423,6 +423,11 @@ class RewardsCfg:
         weight=-1.0,
         params={"command_name": "target_position"},
     )
+    base_height_error = RewTerm(
+        func=mdp.base_height_error,
+        weight=0.0,
+        params={"asset_cfg": SceneEntityCfg("robot")},
+    )
 
     # feet rewards
     feet_air_time = RewTerm(
@@ -433,7 +438,11 @@ class RewardsCfg:
                 "threshold": 0.5,
                 },
     )
-    
+    air_time_variance = RewTerm(
+        func=mdp.air_time_variance_penalty,
+        weight=0.0,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_foot")},
+    )
     feet_acc = RewTerm(
         func=mdp.feet_acceleration_penalty,
         weight=0.0,

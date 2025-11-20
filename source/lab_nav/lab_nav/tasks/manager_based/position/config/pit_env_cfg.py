@@ -13,17 +13,21 @@ class UnitreeGo2PitEnvCfg(UnitreeGo2RoughEnvCfg):
         super().__post_init__()
         
         self.scene.terrain.terrain_generator = PIT_CFG
+        self.commands.target_position.min_dist = 2.0
         
         self.rewards.flat_orientation.weight = 0
         self.rewards.base_lin_vel_z.weight = 0
         self.rewards.base_ang_vel_xy.weight = 0
+        self.rewards.air_time_variance.weight = 0
+        self.rewards.base_height_error.weight = -2.0
 
         # If the weight of rewards is 0, set rewards to None
         if self.__class__.__name__ == "UnitreeGo2PitEnvCfg":
             self.disable_zero_weight_rewards()
 
 @configclass
-class UnitreeGo2PitEnvCfg_PLAY(UnitreeGo2PitEnvCfg):
+class UnitreeGo2PitEnvCfg_PLAY(UnitreeGo2RoughEnvCfg_PLAY):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
+        self.scene.terrain.terrain_generator = PIT_CFG

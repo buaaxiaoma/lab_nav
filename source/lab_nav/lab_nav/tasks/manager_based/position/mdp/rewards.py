@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
     
 from isaaclab.managers import SceneEntityCfg
-from isaaclab.sensors import RayCaster
+from isaaclab.sensors import RayCaster, ContactSensor
 from isaaclab.assets import Articulation, RigidObject
 from lab_nav.tasks.manager_based.position.mdp.commands import *
 
@@ -142,3 +142,21 @@ def heading_command_error_abs(env: ManagerBasedRLEnv, command_name: str) -> torc
     command = env.command_manager.get_command(command_name)
     heading_b = command[:, 3]  # (num_envs,)
     return heading_b.abs()
+
+def air_time_variance_penalty(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Penalty for variance in feet air time"""
+    # extract the used quantities (to enable type-hinting)
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    last_air_time = contact_sensor.data.last_air_time[:, sensor_cfg.body_ids]  # (num_envs, num_feet)
+    last_contact_time = contact_sensor.data.last_contact_time[:, sensor_cfg.body_ids]  # (num_envs, num_feet)
+    return torch.var(torch.clip(last_air_time, max=0.5), dim=1) + torch.var(
+        torch.clip(last_contact_time, max=0.5), dim=1)  # (num_envs,)
+    
+def base_height_error(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Penalize asset height from its target using L2 norm."""
+    # extract the used quantities (to enable type-hinting)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    command : TerrainBasedPoseCommand = env.command_manager.get_term("target_position")
+    # Compute the L2 squared penalty
+    reward = torch.abs(asset.data.root_pos_w[:, 2] - command.target_pos[:, 2])
+    return reward

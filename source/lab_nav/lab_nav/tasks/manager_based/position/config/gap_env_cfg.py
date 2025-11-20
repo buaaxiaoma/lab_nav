@@ -22,7 +22,8 @@ class UnitreeGo2GapEnvCfg(UnitreeGo2RoughEnvCfg):
             self.disable_zero_weight_rewards()
 
 @configclass
-class UnitreeGo2GapEnvCfg_PLAY(UnitreeGo2GapEnvCfg):
+class UnitreeGo2GapEnvCfg_PLAY(UnitreeGo2RoughEnvCfg_PLAY):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
+        self.scene.terrain.terrain_generator = GAP_CFG

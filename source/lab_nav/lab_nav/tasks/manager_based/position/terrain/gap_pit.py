@@ -99,7 +99,7 @@ PIT_CFG = TerrainGeneratorCfg(
     sub_terrains={
         "pit": terrain_gen.MeshPitTerrainCfg(
             pit_depth_range=(0.05, 0.9),
-            platform_width=2.0,
+            platform_width=3.0,
             flat_patch_sampling={
                 "target": FlatPatchSamplingCfg(
                     x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
