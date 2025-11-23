@@ -56,6 +56,11 @@ class TerrainBasedPoseCommand(UniformPose2dCommand):
     @property
     def robot_velocity(self) -> torch.Tensor:
         return self.robot.data.root_lin_vel_w
+    
+    @property
+    def command(self) -> torch.Tensor:
+        """The desired 2D-pose in base frame. Shape is (num_envs, 3)."""
+        return self.pos_command_b
         
 
     def _resample_command(self, env_ids: Sequence[int]):
