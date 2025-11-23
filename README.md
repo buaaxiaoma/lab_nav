@@ -48,10 +48,10 @@ python scripts/rsl_rl/play.py --task=Lab-Position-Rough-Unitree-Go2-Play-v0
 Train go2 with symmetry:
 ```bash
 # Train
-python scripts/rsl_rl/train.py --task=Lab-Position-Rough-Unitree-Go2-v0 --headless --agent=rsl_rl_with_symmetry_cfg_entry_point --run_name=ppo_with_symmetry_data_augmentation agent.algorithm.symmetry_cfg.use_data_augmentation=true
+python scripts/rsl_rl/train.py --task=Lab-Position-Rough-Unitree-Go2-v0 --headless --agent=rsl_rl_with_symmetry_cfg_entry_point --run_name=with_symmetry
 
 # Play
-python scripts/rsl_rl/play.py --task=Lab-Position-Rough-Unitree-Go2-Play-v0 --agent=rsl_rl_with_symmetry_cfg_entry_point --run_name=ppo_with_symmetry_data_augmentation agent.algorithm.symmetry_cfg.use_data_augmentation=true
+python scripts/rsl_rl/play.py --task=Lab-Position-Rough-Unitree-Go2-Play-v0 --agent=rsl_rl_with_symmetry_cfg_entry_point --run_name=with_symmetry
 ```
 
 ### Set up IDE (Optional)

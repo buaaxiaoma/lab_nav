@@ -58,6 +58,10 @@ class TerrainBasedPoseCommand(UniformPose2dCommand):
         return self.robot.data.root_lin_vel_w
     
     @property
+    def target_heading_b(self) -> torch.Tensor:
+        return self.heading_command_b
+    
+    @property
     def command(self) -> torch.Tensor:
         """The desired 2D-pose in base frame. Shape is (num_envs, 3)."""
         return self.pos_command_b

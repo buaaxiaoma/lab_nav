@@ -143,8 +143,8 @@ def heading_command_error_abs(env: ManagerBasedRLEnv, command_name: str) -> torc
     Returns:
         torch.Tensor: The computed absolute heading error tensor of shape (num_envs,).
     """
-    command = env.command_manager.get_command(command_name)
-    heading_b = command[:, 3]  # (num_envs,)
+    command: TerrainBasedPoseCommand = env.command_manager.get_term(command_name)
+    heading_b = command.target_heading_b  # (num_envs,)
     return heading_b.abs()
 
 def air_time_variance_penalty(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
