@@ -360,7 +360,7 @@ class RewardsCfg:
     heading_command_error_abs = RewTerm(func=mdp.heading_command_error_abs, weight=0.0, params={"command_name": "target_position"})
     
     #base
-    base_height = RewTerm(func=mdp.base_height_abs, weight=0.0, params={"target_height": 0.33, "sensor_cfg": SceneEntityCfg("height_scanner_base")})
+    base_height = RewTerm(func=mdp.base_height_abs, weight=0.0, params={"sensor_cfg": SceneEntityCfg("height_scanner_base")})
     flat_orientation = RewTerm(func=mdp.flat_orientation_l2, weight=0.0, params={"asset_cfg": SceneEntityCfg("robot")})
     base_lin_vel_z = RewTerm(func=mdp.lin_vel_z_l2, weight=0.0)
     base_ang_vel_xy = RewTerm(func=mdp.ang_vel_xy_l2, weight=0.0)
@@ -383,6 +383,14 @@ class RewardsCfg:
         func=mdp.joint_vel_limits,
         weight=0.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*"), "soft_ratio": 1.0},
+    )
+    joint_mirror = RewTerm(
+        func=mdp.joint_mirror,
+        weight=0.0,
+        params={
+            "asset_cfg": SceneEntityCfg("robot"),
+            "mirror_joints": [["FR.*", "RL.*"], ["FL.*", "RR.*"]],
+        },
     )
 
     # Action penalties
@@ -455,6 +463,30 @@ class RewardsCfg:
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=""),
             "asset_cfg": SceneEntityCfg("robot", body_names=""),
+        },
+    )
+    feet_gait = RewTerm(
+        func=mdp.GaitReward,
+        weight=0.0,
+        params={
+            "std": math.sqrt(0.5),
+            "command_name": "target_position",
+            "max_err": 0.2,
+            "velocity_threshold": 0.5,
+            "command_threshold": 0.1,
+            "synced_feet_pair_names": (("", ""), ("", "")),
+            "asset_cfg": SceneEntityCfg("robot"),
+            "sensor_cfg": SceneEntityCfg("contact_forces"),
+        },
+    )
+    feet_height_body = RewTerm(
+        func=mdp.feet_height_body,
+        weight=0.0,
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=""),
+            "tanh_mult": 2.0,
+            "target_height": -0.3,
+            "command_name": "target_position",
         },
     )
 
