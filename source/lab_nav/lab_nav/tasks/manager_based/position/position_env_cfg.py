@@ -431,11 +431,6 @@ class RewardsCfg:
         weight=-1.0,
         params={"command_name": "target_position"},
     )
-    base_height_error = RewTerm(
-        func=mdp.base_height_error,
-        weight=0.0,
-        params={"asset_cfg": SceneEntityCfg("robot")},
-    )
 
     # feet rewards
     feet_air_time = RewTerm(
