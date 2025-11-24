@@ -32,6 +32,7 @@ class UnitreeGo2PitPPORunnerCfg(RslRlOnPolicyRunnerCfg):
         max_grad_norm=1.0,
     )
     
+@configclass
 class UnitreeGo2PitPPORunnerWithSymmetryCfg(UnitreeGo2PitPPORunnerCfg):
     algorithm = RslRlPpoAlgorithmCfg(
         value_loss_coef=1.0,
@@ -57,7 +58,8 @@ class UnitreeGo2GapPPORunnerCfg(UnitreeGo2PitPPORunnerCfg):
     def __post_init__(self):
         super().__post_init__()
         self.experiment_name = "unitree_go2_gap"
-        
+
+@configclass
 class UnitreeGo2GapPPORunnerWithSymmetryCfg(UnitreeGo2GapPPORunnerCfg):
     algorithm = RslRlPpoAlgorithmCfg(
         value_loss_coef=1.0,
@@ -82,7 +84,8 @@ class UnitreeGo2RoughPPORunnerCfg(UnitreeGo2PitPPORunnerCfg):
     def __post_init__(self):
         super().__post_init__()
         self.experiment_name = "unitree_go2_rough"
-        
+
+@configclass
 class UnitreeGo2RoughPPORunnerWithSymmetryCfg(UnitreeGo2RoughPPORunnerCfg):
     algorithm = RslRlPpoAlgorithmCfg(
         value_loss_coef=1.0,
