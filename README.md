@@ -8,8 +8,8 @@ The table below lists all available environments:
 |   Environment Name              |
 |---------------------------------|
 |Lab-Position-Rough-Unitree-Go2-v0|
-| Lab-Position-GAP-Unitree-Go2-v0 |
-| Lab-Position-PIT-Unitree-Go2-v0 |
+| Lab-Position-Gap-Unitree-Go2-v0 |
+| Lab-Position-Pit-Unitree-Go2-v0 |
 
 ## Installation
 
@@ -37,21 +37,26 @@ The table below lists all available environments:
     ```
 
 ## Running a task:
-You can use the following commands to run all environments:
+Train Unitree Go2 in rough environment:
 ```bash
 #Train
-python scripts/rsl_rl/train.py --task=Lab-Position-Rough-Unitree-Go2-v0 --headless
+python scripts/rsl_rl/train.py --task=Lab-Position-Rough-Unitree-Go2-v0 --headless --device cuda:0 agent.device=cuda:0
 #Play
-python scripts/rsl_rl/play.py --task=Lab-Position-Rough-Unitree-Go2-Play-v0
+python scripts/rsl_rl/play.py --task=Lab-Position-Rough-Unitree-Go2-Play-v0 --checkpoint logs/rsl_rl/unitree_go2_rough/...
 ```
 
-Train go2 with symmetry:
+Train Go2 with symmetry:
 ```bash
 # Train
 python scripts/rsl_rl/train.py --task=Lab-Position-Rough-Unitree-Go2-v0 --headless --agent=rsl_rl_with_symmetry_cfg_entry_point --run_name=with_symmetry
 
 # Play
-python scripts/rsl_rl/play.py --task=Lab-Position-Rough-Unitree-Go2-Play-v0 --agent=rsl_rl_with_symmetry_cfg_entry_point --run_name=with_symmetry
+python scripts/rsl_rl/play.py --task=Lab-Position-Rough-Unitree-Go2-Play-v0 --agent=rsl_rl_with_symmetry_cfg_entry_point --checkpoint logs/rsl_rl/unitree_go2_rough/...
+```
+
+You can also list all the joints and body names using:
+```bash
+python scripts/tools/print_joint_names.py
 ```
 
 ### Set up IDE (Optional)
