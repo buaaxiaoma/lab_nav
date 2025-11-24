@@ -307,3 +307,49 @@ def feet_height_body(
     reward *= torch.linalg.norm(env.command_manager.get_command(command_name), dim=1) > 0.1
     reward *= torch.clamp(-env.scene["robot"].data.projected_gravity_b[:, 2], 0, 0.7) / 0.7
     return reward
+
+def feet_edge_penalty(
+    env: ManagerBasedRLEnv,
+    FL_ray_sensor_cfg: SceneEntityCfg,
+    FR_ray_sensor_cfg: SceneEntityCfg,
+    RL_ray_sensor_cfg: SceneEntityCfg,
+    RR_ray_sensor_cfg: SceneEntityCfg,
+    contact_sensor_cfg: SceneEntityCfg,
+    edge_height_thresh: float = 0.05,
+) -> torch.Tensor:
+    """Penalize if the feet are close to the edge of the terrain.
+    
+    This is detected by checking the height variance/difference in the vicinity of the feet.
+    """
+    FL_ray_sensor: RayCaster = env.scene.sensors[FL_ray_sensor_cfg.name]
+    FR_ray_sensor: RayCaster = env.scene.sensors[FR_ray_sensor_cfg.name]
+    RL_ray_sensor: RayCaster = env.scene.sensors[RL_ray_sensor_cfg.name]
+    RR_ray_sensor: RayCaster = env.scene.sensors[RR_ray_sensor_cfg.name]
+    contact_sensor: ContactSensor = env.scene.sensors[contact_sensor_cfg.name]
+   
+    # ray_hits shape: (num_envs， 4, num_rays, 3)
+    FL_ray_hits = FL_ray_sensor.data.ray_hits_w.view(env.num_envs, 1, -1, 3)
+    FR_ray_hits = FR_ray_sensor.data.ray_hits_w.view(env.num_envs, 1, -1, 3)
+    RL_ray_hits = RL_ray_sensor.data.ray_hits_w.view(env.num_envs, 1, -1, 3)
+    RR_ray_hits = RR_ray_sensor.data.ray_hits_w.view(env.num_envs, 1, -1, 3)
+    ray_hits = torch.cat([FL_ray_hits, FR_ray_hits, RL_ray_hits, RR_ray_hits], dim=1)
+    
+    # Get heights
+    scan_heights = ray_hits[..., 2] # (num_envs, 4, num_rays)
+    
+    # Calculate height difference (max - min) in the scan
+    # We use a robust metric, e.g., std dev or range.
+    height_range = torch.max(scan_heights, dim=-1)[0] - torch.min(scan_heights, dim=-1)[0] # (num_envs, 4)
+    
+    # Check if foot is in contact
+    # We use the robot's contact force data
+    contacts = contact_sensor.data.net_forces_w_history[:, :, contact_sensor_cfg.body_ids, :].norm(dim=-1).max(dim=1)[0] > 1.0 # (num_envs, num_feet)
+    
+    # Penalty
+    # If in contact AND height_range > threshold
+    is_edge = height_range > edge_height_thresh
+    
+    penalty = torch.sum(torch.where(contacts & is_edge, 1.0, 0.0), dim=-1)
+    
+    return penalty
+

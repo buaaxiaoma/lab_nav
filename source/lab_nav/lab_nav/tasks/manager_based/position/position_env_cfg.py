@@ -77,7 +77,39 @@ class MySceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot/base",
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         ray_alignment="yaw",
-        pattern_cfg=patterns.GridPatternCfg(resolution=0.05, size=(0.1, 0.1)),
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.05, size=[0.1, 0.1]),
+        debug_vis=False,
+        mesh_prim_paths=["/World/ground"],
+    )
+    FL_foot_height_scanner = RayCasterCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/FL_foot",
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
+        ray_alignment="yaw",
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.02, size=[0.1, 0.1]),
+        debug_vis=False,
+        mesh_prim_paths=["/World/ground"],
+    )
+    FR_foot_height_scanner = RayCasterCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/FR_foot",
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
+        ray_alignment="yaw",
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.02, size=[0.1, 0.1]),
+        debug_vis=False,
+        mesh_prim_paths=["/World/ground"],
+    )
+    RL_foot_height_scanner = RayCasterCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/RL_foot",
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
+        ray_alignment="yaw",
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.02, size=[0.1, 0.1]),
+        debug_vis=False,
+        mesh_prim_paths=["/World/ground"],
+    )
+    RR_foot_height_scanner = RayCasterCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/RR_foot",
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
+        ray_alignment="yaw",
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.02, size=[0.1, 0.1]),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
     )
@@ -482,6 +514,18 @@ class RewardsCfg:
             "tanh_mult": 2.0,
             "target_height": -0.3,
             "command_name": "target_position",
+        },
+    )
+    feet_edge = RewTerm(
+        func=mdp.feet_edge_penalty,
+        weight=0.0,
+        params={
+            "FL_ray_sensor_cfg": SceneEntityCfg("FL_foot_height_scanner"),
+            "FR_ray_sensor_cfg": SceneEntityCfg("FR_foot_height_scanner"),
+            "RL_ray_sensor_cfg": SceneEntityCfg("RL_foot_height_scanner"),
+            "RR_ray_sensor_cfg": SceneEntityCfg("RR_foot_height_scanner"),
+            "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_foot"),
+            "edge_height_thresh": 0.05,
         },
     )
 

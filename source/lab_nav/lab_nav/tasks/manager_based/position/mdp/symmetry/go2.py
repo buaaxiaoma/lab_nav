@@ -67,22 +67,22 @@ def compute_symmetric_states(
     # observations
     if obs is not None:
         batch_size = obs.batch_size[0]
-        # since we have 4 different symmetries, we need to augment the batch size by 4
-        obs_aug = obs.repeat(4)
+        # since we have 2 different symmetries, we need to augment the batch size by 2
+        obs_aug = obs.repeat(2)
 
         # policy observation group
         # -- original
         obs_aug["policy"][:batch_size] = obs["policy"][:]
         # -- left-right
         obs_aug["policy"][batch_size : 2 * batch_size] = _transform_policy_obs_left_right(env.unwrapped, obs["policy"])
-        # -- front-back
-        obs_aug["policy"][2 * batch_size : 3 * batch_size] = _transform_policy_obs_front_back(
-            env.unwrapped, obs["policy"]
-        )
-        # -- diagonal
-        obs_aug["policy"][3 * batch_size :] = _transform_policy_obs_front_back(
-            env.unwrapped, obs_aug["policy"][batch_size : 2 * batch_size]
-        )
+        # # -- front-back
+        # obs_aug["policy"][2 * batch_size : 3 * batch_size] = _transform_policy_obs_front_back(
+        #     env.unwrapped, obs["policy"]
+        # )
+        # # -- diagonal
+        # obs_aug["policy"][3 * batch_size :] = _transform_policy_obs_front_back(
+        #     env.unwrapped, obs_aug["policy"][batch_size : 2 * batch_size]
+        # )
 
         # critic observation group
         if "critic" in obs.keys():
@@ -92,30 +92,30 @@ def compute_symmetric_states(
             obs_aug["critic"][batch_size : 2 * batch_size] = _transform_critic_obs_left_right(
                 env.unwrapped, obs["critic"]
             )
-            # -- front-back
-            obs_aug["critic"][2 * batch_size : 3 * batch_size] = _transform_critic_obs_front_back(
-                env.unwrapped, obs["critic"]
-            )
-            # -- diagonal
-            obs_aug["critic"][3 * batch_size :] = _transform_critic_obs_front_back(
-                env.unwrapped, obs_aug["critic"][batch_size : 2 * batch_size]
-            )
+            # # -- front-back
+            # obs_aug["critic"][2 * batch_size : 3 * batch_size] = _transform_critic_obs_front_back(
+            #     env.unwrapped, obs["critic"]
+            # )
+            # # -- diagonal
+            # obs_aug["critic"][3 * batch_size :] = _transform_critic_obs_front_back(
+            #     env.unwrapped, obs_aug["critic"][batch_size : 2 * batch_size]
+            # )
     else:
         obs_aug = None
 
     # actions
     if actions is not None:
         batch_size = actions.shape[0]
-        # since we have 4 different symmetries, we need to augment the batch size by 4
-        actions_aug = torch.zeros(batch_size * 4, actions.shape[1], device=actions.device)
+        # since we have 2 different symmetries, we need to augment the batch size by 2
+        actions_aug = torch.zeros(batch_size * 2, actions.shape[1], device=actions.device)
         # -- original
         actions_aug[:batch_size] = actions[:]
         # -- left-right
         actions_aug[batch_size : 2 * batch_size] = _transform_actions_left_right(actions)
-        # -- front-back
-        actions_aug[2 * batch_size : 3 * batch_size] = _transform_actions_front_back(actions)
-        # -- diagonal
-        actions_aug[3 * batch_size :] = _transform_actions_front_back(actions_aug[batch_size : 2 * batch_size])
+        # # -- front-back
+        # actions_aug[2 * batch_size : 3 * batch_size] = _transform_actions_front_back(actions)
+        # # -- diagonal
+        # actions_aug[3 * batch_size :] = _transform_actions_front_back(actions_aug[batch_size : 2 * batch_size])
     else:
         actions_aug = None
 
@@ -133,7 +133,7 @@ def _transform_policy_obs_left_right(env: ManagerBasedRLEnv, obs: torch.Tensor) 
     device = obs.device
     obs[:, _POLICY_BASE_ANG_VEL] *= torch.tensor([-1, 1, -1], device=device)
     obs[:, _POLICY_PROJECTED_GRAVITY] *= torch.tensor([1, -1, 1], device=device)
-    obs[:, _POLICY_POSITION_COMMANDS] *= torch.tensor([1, -1, -1], device=device)
+    obs[:, _POLICY_POSITION_COMMANDS] *= torch.tensor([1, -1, 1], device=device)
     obs[:, _POLICY_JOINT_POS] = _switch_go2_joints_left_right(obs[:, _POLICY_JOINT_POS])
     obs[:, _POLICY_JOINT_VEL] = _switch_go2_joints_left_right(obs[:, _POLICY_JOINT_VEL])
     obs[:, _POLICY_ACTIONS] = _switch_go2_joints_left_right(obs[:, _POLICY_ACTIONS])
@@ -178,7 +178,7 @@ def _transform_critic_obs_left_right(env: ManagerBasedRLEnv, obs: torch.Tensor) 
     obs[:, _CRITIC_BASE_LIN_VEL] *= torch.tensor([1, -1, 1], device=device)
     obs[:, _CRITIC_BASE_ANG_VEL] *= torch.tensor([-1, 1, -1], device=device)
     obs[:, _CRITIC_PROJECTED_GRAVITY] *= torch.tensor([1, -1, 1], device=device)
-    obs[:, _CRITIC_POSITION_COMMANDS] *= torch.tensor([1, -1, -1], device=device)
+    obs[:, _CRITIC_POSITION_COMMANDS] *= torch.tensor([1, -1, 1], device=device)
     obs[:, _CRITIC_JOINT_POS] = _switch_go2_joints_left_right(obs[:, _CRITIC_JOINT_POS])
     obs[:, _CRITIC_JOINT_VEL] = _switch_go2_joints_left_right(obs[:, _CRITIC_JOINT_VEL])
     obs[:, _CRITIC_ACTIONS] = _switch_go2_joints_left_right(obs[:, _CRITIC_ACTIONS])
@@ -263,19 +263,19 @@ def _transform_actions_front_back(actions: torch.Tensor) -> torch.Tensor:
 """
 Helper functions for symmetry.
 
-In Isaac Sim, the joint ordering is as follows:
+For go2, the joint ordering is as follows:
 [
-    'LF_HAA', 'LH_HAA', 'RF_HAA', 'RH_HAA',
-    'LF_HFE', 'LH_HFE', 'RF_HFE', 'RH_HFE',
-    'LF_KFE', 'LH_KFE', 'RF_KFE', 'RH_KFE'
+    'FL_hip_joint',   'FR_hip_joint',   'RL_hip_joint',   'RR_hip_joint',
+    'FL_thigh_joint', 'FR_thigh_joint', 'RL_thigh_joint', 'RR_thigh_joint',
+    'FL_calf_joint',  'FR_calf_joint',  'RL_calf_joint',  'RR_calf_joint'
 ]
 
 Correspondingly, the joint ordering for the go2 robot is:
 
-* LF = left front --> [0, 4, 8]
-* LH = left hind --> [1, 5, 9]
-* RF = right front --> [2, 6, 10]
-* RH = right hind --> [3, 7, 11]
+* FL = left front --> [0, 4, 8]
+* RL = left rear --> [2, 6, 10]
+* FR = right front --> [1, 5, 9]
+* RR = right rear --> [3, 7, 11]
 """
 
 
@@ -283,11 +283,11 @@ def _switch_go2_joints_left_right(joint_data: torch.Tensor) -> torch.Tensor:
     """Applies a left-right symmetry transformation to the joint data tensor."""
     joint_data_switched = torch.zeros_like(joint_data)
     # left <-- right
-    joint_data_switched[..., [0, 4, 8, 1, 5, 9]] = joint_data[..., [2, 6, 10, 3, 7, 11]]
+    joint_data_switched[..., [0, 4, 8, 2, 6, 10]] = joint_data[..., [1, 5, 9, 3, 7, 11]]
     # right <-- left
-    joint_data_switched[..., [2, 6, 10, 3, 7, 11]] = joint_data[..., [0, 4, 8, 1, 5, 9]]
+    joint_data_switched[..., [1, 5, 9, 3, 7, 11]] = joint_data[..., [0, 4, 8, 2, 6, 10]]
 
-    # Flip the sign of the HAA joints
+    # Flip the sign of the hip joints
     joint_data_switched[..., [0, 1, 2, 3]] *= -1.0
 
     return joint_data_switched

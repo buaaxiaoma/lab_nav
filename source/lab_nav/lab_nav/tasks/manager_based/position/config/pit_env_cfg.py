@@ -22,6 +22,7 @@ class UnitreeGo2PitEnvCfg(UnitreeGo2RoughEnvCfg):
         self.rewards.feet_height_body.weight = 0
         self.rewards.feet_gait.weight = 0
         self.rewards.joint_mirror.weight = 0
+        self.rewards.feet_edge.weight = -10.0
 
         # If the weight of rewards is 0, set rewards to None
         if self.__class__.__name__ == "UnitreeGo2PitEnvCfg":

@@ -16,16 +16,24 @@ ROUGH_CFG = TerrainGeneratorCfg(
     num_rows=10,
     num_cols=20,
     horizontal_scale=0.1,
-    vertical_scale=1.0,
+    vertical_scale=0.005,
     use_cache=False,
     curriculum=True,
     sub_terrains={
         "flat": terrain_gen.MeshPlaneTerrainCfg(
-            proportion=0.4,
+            proportion=0.2,
             flat_patch_sampling={
                 "target": FlatPatchSamplingCfg(
                     x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
                     num_patches=100, patch_radius=0.1, max_height_diff=0.1)
+            },
+        ),
+        "random_rough": terrain_gen.HfRandomUniformTerrainCfg(
+            proportion=0.2, noise_range=(0.02, 0.10), noise_step=0.02, border_width=0.25,
+            flat_patch_sampling={
+                "target": FlatPatchSamplingCfg(
+                    x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
+                    num_patches=100, patch_radius=0.05, max_height_diff=0.1)
             },
         ),
         "pyramid_stairs": terrain_gen.MeshPyramidStairsTerrainCfg(
@@ -71,7 +79,7 @@ GAP_CFG = TerrainGeneratorCfg(
     num_rows=10,
     num_cols=20,
     horizontal_scale=0.1,
-    vertical_scale=1.0,
+    vertical_scale=0.005,
     use_cache=False,
     curriculum=True,
     sub_terrains={
@@ -93,7 +101,7 @@ PIT_CFG = TerrainGeneratorCfg(
     num_rows=10,
     num_cols=20,
     horizontal_scale=0.1,
-    vertical_scale=1.0,
+    vertical_scale=0.005,
     use_cache=False,
     curriculum=True,
     sub_terrains={
