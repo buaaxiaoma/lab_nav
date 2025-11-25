@@ -79,7 +79,7 @@ class UnitreeGo2RoughEnvCfg(LocomotionPositionEnvCfg):
         
         # Base
         self.rewards.base_height.weight = -2.5
-        self.rewards.flat_orientation.weight = -0.3
+        self.rewards.flat_orientation.weight = -0.5
         self.rewards.base_lin_vel_z.weight = -0.7
         self.rewards.base_ang_vel_xy.weight = -0.02
         
@@ -114,19 +114,18 @@ class UnitreeGo2RoughEnvCfg(LocomotionPositionEnvCfg):
         self.rewards.stalling_penalty.weight = -5.0
 
         # Others
-        self.rewards.feet_air_time.weight = 0.1
         self.rewards.air_time_variance.weight = -1.0
         self.rewards.feet_acc.weight = -2.5e-7
         self.rewards.feet_acc.params["asset_cfg"].body_names = [self.foot_link_name]
-        self.rewards.feet_slide.weight = -0.1
+        self.rewards.feet_slide.weight = -1.0
         self.rewards.feet_slide.params["sensor_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_slide.params["asset_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_height_body.weight = -5.0
         self.rewards.feet_height_body.params["target_height"] = -0.2
         self.rewards.feet_height_body.params["asset_cfg"].body_names = [self.foot_link_name]
-        self.rewards.feet_gait.weight = 0.5
+        self.rewards.feet_gait.weight = 1.0
         self.rewards.feet_gait.params["synced_feet_pair_names"] = (("FL_foot", "RR_foot"), ("FR_foot", "RL_foot"))
-        self.rewards.feet_edge.weight = -2.0
+        self.rewards.feet_edge.weight = -1.0
 
         # If the weight of rewards is 0, set rewards to None
         if self.__class__.__name__ == "UnitreeGo2RoughEnvCfg":

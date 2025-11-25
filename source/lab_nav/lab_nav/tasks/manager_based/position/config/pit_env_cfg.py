@@ -15,14 +15,14 @@ class UnitreeGo2PitEnvCfg(UnitreeGo2RoughEnvCfg):
         self.scene.terrain.terrain_generator = PIT_CFG
         self.commands.target_position.min_dist = 2.0
         
-        self.rewards.flat_orientation.weight = 0
+        self.rewards.flat_orientation.weight = -1.0
         self.rewards.base_lin_vel_z.weight = 0
         self.rewards.base_ang_vel_xy.weight = 0
         self.rewards.air_time_variance.weight = 0
         self.rewards.feet_height_body.weight = 0
         self.rewards.feet_gait.weight = 0
         self.rewards.joint_mirror.weight = 0
-        self.rewards.feet_edge.weight = -10.0
+        self.rewards.feet_edge.weight = -5.0
 
         # If the weight of rewards is 0, set rewards to None
         if self.__class__.__name__ == "UnitreeGo2PitEnvCfg":
