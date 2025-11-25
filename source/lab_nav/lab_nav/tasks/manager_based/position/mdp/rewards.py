@@ -163,7 +163,7 @@ def flat_orientation_y(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = Scene
     """
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
-    return torch.sum(torch.square(asset.data.projected_gravity_b[:, 1]), dim=1)
+    return torch.square(asset.data.projected_gravity_b[:, 1])
 
     
 class GaitReward(ManagerTermBase):
