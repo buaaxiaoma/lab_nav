@@ -566,15 +566,6 @@ class CurriculumCfg:
         }
     )
     
-    change_feet_acc = CurrTerm(
-        func=mdp.modify_term_cfg,
-        params={
-            "address": "rewards.feet_acc.weight",
-            "modify_fn": mdp.override_value,
-            "modify_params": {"value": -2.5e-6, "num_steps": 2000*48}
-        }
-    )
-    
     update_randomize_reset_base = CurrTerm(
         func=mdp.modify_term_cfg,
         params={
