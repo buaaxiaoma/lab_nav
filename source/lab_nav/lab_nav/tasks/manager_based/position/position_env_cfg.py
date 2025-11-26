@@ -203,8 +203,9 @@ class ObservationsCfg:
             scale=1.0,
         )
         height_scan = ObsTerm(
-            func=mdp.randomized_height_scanner,
-            params={"asset_cfg": SceneEntityCfg("robot"), "sensor_cfg": SceneEntityCfg("height_scanner")},
+            func=mdp.HeightScanRand,
+            params={"asset_cfg": SceneEntityCfg("robot", body_names=".*_foot"), 
+                    "sensor_cfg": SceneEntityCfg("height_scanner")},
             clip=(-1.0, 1.0),
             scale=1.0,
         )
@@ -260,8 +261,9 @@ class ObservationsCfg:
             scale=1.0,
         )
         height_scan = ObsTerm(
-            func=mdp.randomized_height_scanner,
-            params={"asset_cfg": SceneEntityCfg("robot"), "sensor_cfg": SceneEntityCfg("height_scanner")},
+            func=mdp.HeightScanRand,
+            params={"asset_cfg": SceneEntityCfg("robot", body_names=".*_foot"),
+                    "sensor_cfg": SceneEntityCfg("height_scanner")},
             clip=(-1.0, 1.0),
             scale=1.0,
         )

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import torch
-from dataclasses import dataclass
-from typing import Optional, Tuple
 import torch.nn.functional as F
 from isaaclab.assets import RigidObject
 from isaaclab.managers import SceneEntityCfg
+from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.sensors import RayCaster
+from isaaclab.utils import configclass
+from isaaclab.envs.mdp import ManagerTermBase
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -19,8 +20,169 @@ def remaining_time_fraction(env: ManagerBasedRLEnv) -> torch.Tensor:
     remaining_time = 1.0 - (env.episode_length_buf[:, None] * env.step_dt) / env.max_episode_length
     return remaining_time
 
-@dataclass
-class HeightScanRandCfg:
+class HeightScanRand(ManagerTermBase):
+    
+    cfg: HeightScanRandCfg
+    
+    def __init__(self, cfg: HeightScanRandCfg, env: ManagerBasedRLEnv):
+        super().__init__(cfg, env)
+        
+        # Handle case where cfg is a generic ObservationTermCfg with params
+        if not isinstance(self.cfg, HeightScanRandCfg):
+            if hasattr(self.cfg, "params") and isinstance(self.cfg.params, HeightScanRandCfg):
+                self.cfg = self.cfg.params
+            elif hasattr(self.cfg, "params") and isinstance(self.cfg.params, dict):
+                params = self.cfg.params
+                try:
+                    new_cfg = HeightScanRandCfg(func=self.__class__)
+                except TypeError:
+                    new_cfg = HeightScanRandCfg()
+                
+                for k, v in params.items():
+                    if hasattr(new_cfg, k):
+                        setattr(new_cfg, k, v)
+                self.cfg = new_cfg
+
+        # Pre-allocate Sobel kernels for edge detection
+        self.sobel_x = torch.tensor([[-1., 0., 1.],
+                                     [-2., 0., 2.],
+                                     [-1., 0., 1.]], dtype=torch.float32)
+        self.sobel_y = torch.tensor([[-1., -2., -1.],
+                                     [ 0.,  0.,  0.],
+                                     [ 1.,  2.,  1.]], dtype=torch.float32)
+    
+    def __call__(
+        self,
+        env: ManagerBasedRLEnv,
+        asset_cfg: SceneEntityCfg,
+        sensor_cfg: SceneEntityCfg,
+    ) -> torch.Tensor:
+        """对 scanner 输出 (N, R, 3) 做增强版随机化，返回 (N, R, 3) 高度观测.
+
+        包含：
+            1. 高斯噪声
+            2. 随机 dropout
+            3. 腿遮挡模型
+            4. 地形边缘增强噪声
+
+        Args:
+            env: 环境实例
+            cfg: 随机化配置
+            asset_cfg: 用于获取脚位置的资产配置
+            sensor_cfg: 用于获取扫描器的传感器配置
+
+        Returns:
+            processed_scan: (N, R, 3) 随机化后的点云 (x, y, h)
+        """
+        sensor: RayCaster = env.scene.sensors[sensor_cfg.name]
+        
+        # 1. 准备数据
+        # 获取世界坐标系下的击中点 (N, R, 3)
+        ray_hits = sensor.data.ray_hits_w
+        # 计算高度/距离: height = sensor_height - hit_point_z - offset
+        # 注意：这里假设用户想要的是相对高度/距离作为 z 分量
+        heights = sensor.data.pos_w[:, 2].unsqueeze(1) - ray_hits[..., 2] - 0.5
+        
+        # 构造 scan_points (N, R, 3)，其中 z 分量替换为计算出的高度
+        scan_points = torch.stack([ray_hits[..., 0], ray_hits[..., 1], heights], dim=-1)
+        
+        num_envs, num_rays, _ = scan_points.shape
+        H, W = self.cfg.grid_height, self.cfg.grid_width
+        assert H * W == num_rays, (
+            f"grid_height * grid_width must equal num_rays_per_scan, "
+            f"but {H} * {W} != {num_rays}"
+        )
+
+        # 提取 xyz，并 reshape 成 (N, H, W) 以便进行 2D 处理
+        xs = scan_points[..., 0].view(num_envs, H, W)
+        ys = scan_points[..., 1].view(num_envs, H, W)
+        zs = scan_points[..., 2].view(num_envs, H, W)
+
+        # Clone 以避免修改原始数据
+        h = zs.clone()
+
+        # 2. 应用各种噪声
+        h = self._apply_gaussian_noise(h)
+        h = self._apply_dropout(h)
+        h = self._apply_leg_occlusion(h, xs, ys, env, asset_cfg)
+        h = self._apply_edge_noise(h)
+
+        # 3. 恢复形状并返回 (N, R, 3)
+        h_out = h.view(num_envs, num_rays)
+        
+        return h_out
+
+    def _apply_gaussian_noise(self, h):
+        """应用高斯噪声"""
+        if self.cfg.gaussian_std_h > 0.0:
+            h = h + torch.randn_like(h) * self.cfg.gaussian_std_h
+        return h
+
+    def _apply_dropout(self, h):
+        """应用随机 Dropout"""
+        if self.cfg.dropout_prob > 0.0:
+            drop_mask = (torch.rand_like(h) < self.cfg.dropout_prob)
+            h = torch.where(drop_mask, torch.full_like(h, self.cfg.missing_value), h)
+        return h
+
+    def _apply_leg_occlusion(self, h, xs, ys, env, asset_cfg):
+        """应用腿部遮挡模型"""
+        asset: RigidObject = env.scene[asset_cfg.name]
+        foot_positions = asset.data.body_pos_w[:, asset_cfg.body_ids, :]
+        
+        if foot_positions is None:
+            return h
+            
+        num_envs = h.shape[0]
+        num_feet = foot_positions.shape[1]
+
+        # 广播形状准备计算距离
+        # foot: (N, num_feet, 1, 1)
+        foot_x = foot_positions[..., 0].view(num_envs, num_feet, 1, 1)
+        foot_y = foot_positions[..., 1].view(num_envs, num_feet, 1, 1)
+        
+        # grid: (N, 1, H, W)
+        xs_exp = xs.unsqueeze(1)
+        ys_exp = ys.unsqueeze(1)
+
+        # 计算距离 (N, num_feet, H, W)
+        dist = torch.sqrt((xs_exp - foot_x) ** 2 + (ys_exp - foot_y) ** 2)
+
+        # 遮挡掩码
+        near_any_foot = (dist < self.cfg.leg_occlusion_radius).any(dim=1) # (N, H, W)
+        rand_mask = torch.rand_like(h) < self.cfg.leg_occlusion_prob
+        occlude_mask = near_any_foot & rand_mask
+
+        return torch.where(occlude_mask, torch.full_like(h, self.cfg.missing_value), h)
+
+    def _apply_edge_noise(self, h):
+        """应用地形边缘增强噪声 (向量化实现)"""
+        if not self.cfg.enable_edge_noise or self.cfg.edge_noise_std <= 0.0:
+            return h
+            
+        # 确保 Sobel 核在正确的设备上
+        if self.sobel_x.device != h.device:
+            self.sobel_x = self.sobel_x.to(h.device)
+            self.sobel_y = self.sobel_y.to(h.device)
+
+        # 准备卷积输入 (N, 1, H, W)
+        h_in = h.unsqueeze(1)
+        
+        # 计算梯度
+        grad_x = F.conv2d(h_in, self.sobel_x.view(1, 1, 3, 3), padding=1)
+        grad_y = F.conv2d(h_in, self.sobel_y.view(1, 1, 3, 3), padding=1)
+        grad_mag = torch.sqrt(grad_x.pow(2) + grad_y.pow(2)).squeeze(1) # (N, H, W)
+        
+        # 应用噪声
+        edge_mask = grad_mag > self.cfg.edge_grad_threshold
+        if edge_mask.any():
+            edge_noise = torch.randn_like(h) * self.cfg.edge_noise_std
+            h = torch.where(edge_mask, h + edge_noise, h)
+            
+        return h
+    
+@configclass
+class HeightScanRandCfg(ObsTerm):
     """高度扫描随机化配置，针对 scanner 输出为 (N, num_rays, 3) 的情况."""
 
     # 网格尺寸：H * W = num_rays_per_scan
@@ -52,137 +214,3 @@ class HeightScanRandCfg:
     enable_edge_noise: bool = True
     edge_grad_threshold: float = 0.05
     edge_noise_std: float = 0.03
-
-
-def _compute_edge_mask(height_2d: torch.Tensor, threshold: float) -> torch.Tensor:
-    """对单个 env 的 2D 高度图计算 edge mask (True 表示地形边缘附近)."""
-    sobel_x = torch.tensor([[-1., 0., 1.],
-                            [-2., 0., 2.],
-                            [-1., 0., 1.]], device=height_2d.device, dtype=height_2d.dtype)
-    sobel_y = torch.tensor([[-1., -2., -1.],
-                            [ 0.,  0.,  0.],
-                            [ 1.,  2.,  1.]], device=height_2d.device, dtype=height_2d.dtype)
-
-    h = height_2d.unsqueeze(0).unsqueeze(0)  # (1,1,H,W)
-    grad_x = F.conv2d(h, sobel_x.view(1, 1, 3, 3), padding=1)
-    grad_y = F.conv2d(h, sobel_y.view(1, 1, 3, 3), padding=1)
-    grad_mag = torch.sqrt(grad_x.pow(2) + grad_y.pow(2)).squeeze(0).squeeze(0)
-    return grad_mag > threshold
-
-
-def randomized_height_scanner(
-    env: ManagerBasedRLEnv,
-    cfg: HeightScanRandCfg,
-    asset_cfg: SceneEntityCfg,
-    sensor_cfg: SceneEntityCfg,
-) -> torch.Tensor:
-    """对 scanner 输出 (N, R, 3) 做增强版随机化，返回 (N, R) 高度观测.
-
-    包含：
-        1. 高斯噪声
-        2. 随机 dropout
-        3. 腿遮挡模型
-        4. 地形边缘增强噪声
-
-    Args:
-        scan_points: (N, R, 3)，最后一维为 (x, y, z).
-        cfg: 随机化配置.
-        asset_cfg: 用于获取脚位置的资产配置.
-        sensor_cfg: 用于获取扫描器的传感器配置.
-
-    Returns:
-        heights_out: (N, R) 随机化后的高度。
-    """
-    sensor: RayCaster = env.scene.sensors[sensor_cfg.name]
-    # height scan: height = sensor_height - hit_point_z - offset
-    scan_points =sensor.data.pos_w[:, 2].unsqueeze(1) - sensor.data.ray_hits_w[..., 2] - 0.5
-    
-    if scan_points.ndim != 3 or scan_points.shape[-1] != 3:
-        raise ValueError(f"scan_points must be (N, R, 3), got {scan_points.shape}")
-
-    num_envs, num_rays, _ = scan_points.shape
-    H, W = cfg.grid_height, cfg.grid_width
-    assert H * W == num_rays, (
-        f"grid_height * grid_width must equal num_rays_per_scan, "
-        f"but {H} * {W} != {num_rays}"
-    )
-
-    device = scan_points.device
-
-    # 提取 xyz，并 reshape 成 (N, H, W)
-    xs = scan_points[..., 0].view(num_envs, H, W)
-    ys = scan_points[..., 1].view(num_envs, H, W)
-    zs = scan_points[..., 2].view(num_envs, H, W)  # 真正的高度
-
-    x = xs.clone()
-    y = ys.clone()
-    h = zs.clone()
-
-    # --------------------------------------------------
-    # 1. 高斯噪声: h = h + N(0, sigma^2)
-    # --------------------------------------------------
-    if cfg.gaussian_std_xy > 0.0:
-        noise_x = torch.randn_like(x) * cfg.gaussian_std_xy
-        x = x + noise_x
-        noise_y = torch.randn_like(y) * cfg.gaussian_std_xy
-        y = y + noise_y
-    if cfg.gaussian_std_h > 0.0:
-        noise_h = torch.randn_like(h) * cfg.gaussian_std_h
-        h = h + noise_h
-
-    # --------------------------------------------------
-    # 2. 随机 dropout: 每个 cell 以 p 概率被置为 missing_value
-    # --------------------------------------------------
-    if cfg.dropout_prob > 0.0:
-        drop_mask = (torch.rand_like(h) < cfg.dropout_prob)
-        h = torch.where(drop_mask, torch.full_like(h, cfg.missing_value), h)
-
-    # --------------------------------------------------
-    # 3. 腿遮挡模型:
-    #    如果提供了 foot_positions，则在半径内的射线有一定概率被置为 missing_value
-    # --------------------------------------------------
-    asset: RigidObject = env.scene[asset_cfg.name]
-    foot_positions = asset.data.body_pos_w[:, asset_cfg.body_ids, :]
-    if foot_positions is not None:
-        # foot_positions: (N, num_feet, 3)
-        assert foot_positions.ndim == 3 and foot_positions.shape[0] == num_envs
-        num_feet = foot_positions.shape[1]
-
-        # 把脚坐标展开成 (N, num_feet, 1, 1) 方便广播
-        foot_x = foot_positions[..., 0].view(num_envs, num_feet, 1, 1)
-        foot_y = foot_positions[..., 1].view(num_envs, num_feet, 1, 1)
-
-        # xs, ys: (N, 1, H, W)
-        xs_exp = xs.unsqueeze(1)
-        ys_exp = ys.unsqueeze(1)
-
-        # 计算每个 cell 到每只脚的距离 (N, num_feet, H, W)
-        dist = torch.sqrt((xs_exp - foot_x) ** 2 + (ys_exp - foot_y) ** 2)
-
-        # 距离小于半径的区域
-        near_foot = dist < cfg.leg_occlusion_radius  # (N, num_feet, H, W)
-        # 对多个脚取 OR
-        near_any_foot = near_foot.any(dim=1)        # (N, H, W)
-
-        # 在这些区域内再以 leg_occlusion_prob 决定是否真的遮挡
-        rand_mask = torch.rand_like(h) < cfg.leg_occlusion_prob
-        occlude_mask = near_any_foot & rand_mask
-
-        h = torch.where(occlude_mask, torch.full_like(h, cfg.missing_value), h)
-
-    # --------------------------------------------------
-    # 4. 地形边缘增强噪声:
-    #    使用 Sobel 计算梯度，大于阈值的地方加更大噪声
-    # --------------------------------------------------
-    if cfg.enable_edge_noise and cfg.edge_noise_std > 0.0:
-        for env_id in range(num_envs):
-            edge_mask = _compute_edge_mask(h[env_id], cfg.edge_grad_threshold)
-            if edge_mask.any():
-                edge_noise = torch.randn_like(h[env_id]) * cfg.edge_noise_std
-                h[env_id][edge_mask] += edge_noise[edge_mask]
-
-    x_out = x.view(num_envs, num_rays) # (N, R)
-    y_out = y.view(num_envs, num_rays) # (N, R)
-    heights_out = h.view(num_envs, num_rays) # (N, R)
-    
-    return torch.cat([x_out, y_out, heights_out], dim=-1)  # (N, R, 3)
