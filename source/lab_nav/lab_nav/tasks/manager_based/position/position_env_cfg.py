@@ -498,16 +498,6 @@ class RewardsCfg:
             "sensor_cfg": SceneEntityCfg("contact_forces"),
         },
     )
-    feet_height_body = RewTerm(
-        func=mdp.feet_height_body,
-        weight=0.0,
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=""),
-            "tanh_mult": 2.0,
-            "target_height": -0.3,
-            "command_name": "target_position",
-        },
-    )
     feet_edge = RewTerm(
         func=mdp.feet_edge_penalty,
         weight=0.0,

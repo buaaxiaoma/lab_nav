@@ -20,12 +20,20 @@ ROUGH_CFG = TerrainGeneratorCfg(
     use_cache=False,
     curriculum=True,
     sub_terrains={
-        "flat": terrain_gen.MeshPlaneTerrainCfg(
-            proportion=0.2,
+        "slope": terrain_gen.HfPyramidSlopedTerrainCfg(
+            proportion=0.1, slope_range=(0.1, 0.4), platform_width=2.0, border_width=0.25,
             flat_patch_sampling={
                 "target": FlatPatchSamplingCfg(
                     x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
-                    num_patches=100, patch_radius=0.1, max_height_diff=0.1)
+                    num_patches=100, patch_radius=0.05, max_height_diff=0.1)
+            },
+        ),
+        "slope_inv": terrain_gen.HfInvertedPyramidSlopedTerrainCfg(
+            proportion=0.1, slope_range=(0.1, 0.4), platform_width=2.0, border_width=0.25,
+            flat_patch_sampling={
+                "target": FlatPatchSamplingCfg(
+                    x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
+                    num_patches=100, patch_radius=0.05, max_height_diff=0.1)
             },
         ),
         "random_rough": terrain_gen.HfRandomUniformTerrainCfg(
