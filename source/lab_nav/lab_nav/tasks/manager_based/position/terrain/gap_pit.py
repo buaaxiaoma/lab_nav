@@ -21,7 +21,7 @@ ROUGH_CFG = TerrainGeneratorCfg(
     curriculum=True,
     sub_terrains={
         "slope": terrain_gen.HfPyramidSlopedTerrainCfg(
-            proportion=0.1, slope_range=(0.1, 0.4), platform_width=2.0, border_width=0.25,
+            proportion=0.1, slope_range=(0.1, 0.5), platform_width=2.0, border_width=0.25,
             flat_patch_sampling={
                 "target": FlatPatchSamplingCfg(
                     x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
@@ -29,7 +29,7 @@ ROUGH_CFG = TerrainGeneratorCfg(
             },
         ),
         "slope_inv": terrain_gen.HfInvertedPyramidSlopedTerrainCfg(
-            proportion=0.1, slope_range=(0.1, 0.4), platform_width=2.0, border_width=0.25,
+            proportion=0.1, slope_range=(0.1, 0.5), platform_width=2.0, border_width=0.25,
             flat_patch_sampling={
                 "target": FlatPatchSamplingCfg(
                     x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
