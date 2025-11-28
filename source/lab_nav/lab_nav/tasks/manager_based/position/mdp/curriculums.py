@@ -33,13 +33,13 @@ def terrain_levels_pos(env: ManagerBasedRLEnv, env_ids: Sequence[int], threshold
     command: TerrainBasedPoseCommand = env.command_manager.get_term("target_position")
     asset: Articulation = env.scene[asset_cfg.name]
     # compute the distance to the target position
-    distance = torch.norm(command.robot_pos[env_ids, :] - command.target_pos[env_ids, :], dim=1)
+    distance = torch.norm(command.robot_pos_w[env_ids, :] - command.target_pos_w[env_ids, :], dim=1)
     
     # robots that walked close enough to target position go to harder terrains
     move_up = distance <= threshold
     
     # robots that walked less than half of their required distance go to simpler terrains
-    initial_distance = torch.norm(terrain.env_origins[env_ids, :] + asset.data.default_root_state[env_ids, :3] - command.target_pos[env_ids, :], dim=1)
+    initial_distance = torch.norm(terrain.env_origins[env_ids, :] + asset.data.default_root_state[env_ids, :3] - command.target_pos_w[env_ids, :], dim=1)
     move_down = distance > initial_distance / 2.0
     move_down *= ~move_up
     # update terrain levels

@@ -12,6 +12,7 @@ from isaaclab.managers import ManagerTermBase
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.sensors import RayCaster, ContactSensor
 from isaaclab.assets import Articulation, RigidObject
+from isaaclab.envs import mdp
 from lab_nav.tasks.manager_based.position.mdp.commands import *
 
 def task_reward(env: ManagerBasedRLEnv, command_name: str, Tr: float = 1.0) -> torch.Tensor:
@@ -26,8 +27,8 @@ def task_reward(env: ManagerBasedRLEnv, command_name: str, Tr: float = 1.0) -> t
         torch.Tensor: The computed reward tensor of shape (num_envs,).
     """
     command: TerrainBasedPoseCommand = env.command_manager.get_term(command_name)
-    robot_pos = command.robot_pos
-    target_pos = command.target_pos
+    robot_pos = command.robot_pos_w
+    target_pos = command.target_pos_w
 
     distance = torch.norm(robot_pos - target_pos, dim=-1)  # (num_envs,)
 
@@ -35,7 +36,7 @@ def task_reward(env: ManagerBasedRLEnv, command_name: str, Tr: float = 1.0) -> t
     condition = env.episode_length_buf * env.step_dt >= env.max_episode_length_s - Tr
     
     # Calculate reward using torch.where for vectorized operation
-    reward = torch.where(condition, 1.0 / Tr / (1.0 + distance), 0.0)
+    reward = torch.where(condition, 1.0 - 0.5 * distance, 0.0)
     
     return reward
 
@@ -51,8 +52,8 @@ def exploration_reward(env: ManagerBasedRLEnv, command_name: str, Tr: float = 1.
         torch.Tensor: The computed reward tensor of shape (num_envs,).
     """
     command: TerrainBasedPoseCommand = env.command_manager.get_term(command_name)
-    robot_vel = command.robot_velocity # (num_envs, 3)
-    target_vec = command.target_pos - command.robot_pos # (num_envs, 3)
+    robot_vel = command.robot_velocity_w # (num_envs, 3)
+    target_vec = command.target_pos_w - command.robot_pos_w # (num_envs, 3)
     distance = torch.norm(target_vec, dim=-1)  # (num_envs,)
 
     # Condition for when to apply the reward
@@ -83,8 +84,8 @@ def stalling_penalty(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
         torch.Tensor: The computed penalty tensor of shape (num_envs,).
     """
     command: TerrainBasedPoseCommand = env.command_manager.get_term(command_name)
-    speed = torch.norm(command.robot_velocity, dim=-1)  # (num_envs,)
-    distance = torch.norm(command.robot_pos - command.target_pos, dim=-1)  # (num_envs,)
+    speed = torch.norm(command.robot_velocity_w, dim=-1)  # (num_envs,)
+    distance = torch.norm(command.robot_pos_w - command.target_pos_w, dim=-1)  # (num_envs,)
 
     # Condition for when to apply the reward
     condition = (speed < 0.2) & (distance > 0.3)
@@ -103,7 +104,7 @@ def feet_acceleration_penalty(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg)
     reward = torch.sum(torch.square(penalty), dim=-1)  # (num_envs,)
     return reward
 
-def base_height_abs(
+def base_height_l1(
     env: ManagerBasedRLEnv,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     sensor_cfg: SceneEntityCfg | None = None,
@@ -133,7 +134,16 @@ def base_height_abs(
     reward = torch.abs(asset.data.root_pos_w[:, 2] - adjusted_target_height)
     return reward
 
-def heading_command_error_abs(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
+def base_acc(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Penalty for base acceleration"""
+    # extract the used quantities (to enable type-hinting)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    base_acc_lin = asset.data.body_acc_w[:, 0, :3]  # (num_envs, 3)
+    base_acc_ang = asset.data.body_acc_w[:, 0, 3:]  # (num_envs, 3)
+    reward = torch.square(torch.norm(base_acc_lin, dim=-1)) + 0.02 * torch.square(torch.norm(base_acc_ang, dim=-1))  # (num_envs,)
+    return reward
+
+def heading_command_error_abs(env: ManagerBasedRLEnv, command_name: str, Tr: float = 1.0) -> torch.Tensor:
     """Compute the absolute heading error between the robot's heading and the commanded heading.
 
     Args:
@@ -144,8 +154,13 @@ def heading_command_error_abs(env: ManagerBasedRLEnv, command_name: str) -> torc
         torch.Tensor: The computed absolute heading error tensor of shape (num_envs,).
     """
     command: TerrainBasedPoseCommand = env.command_manager.get_term(command_name)
+    distance = torch.norm(command.robot_pos_w - command.target_pos_w, dim=-1)  # (num_envs,)
+
+    condition = (env.episode_length_buf * env.step_dt >= env.max_episode_length_s - Tr) & (distance <= 0.5)
+    command: TerrainBasedPoseCommand = env.command_manager.get_term(command_name)
     heading_b = command.target_heading_b  # (num_envs,)
-    return heading_b.abs()
+    reward = torch.where(condition, 1 - 0.5 * heading_b.abs(), 0)
+    return reward
 
 def air_time_variance_penalty(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
     """Penalty for variance in feet air time"""
@@ -155,6 +170,16 @@ def air_time_variance_penalty(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg
     last_contact_time = contact_sensor.data.last_contact_time[:, sensor_cfg.body_ids]  # (num_envs, num_feet)
     return torch.var(torch.clip(last_air_time, max=0.5), dim=1) + torch.var(
         torch.clip(last_contact_time, max=0.5), dim=1)  # (num_envs,)
+    
+def feet_stumble(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
+    # extract the used quantities (to enable type-hinting)
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    forces_z = torch.abs(contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids, 2])
+    forces_xy = torch.linalg.norm(contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids, :2], dim=2)
+    # Penalize feet hitting vertical surfaces
+    reward = torch.any(forces_xy > 4 * forces_z, dim=1).float()
+    reward *= torch.clamp(-env.scene["robot"].data.projected_gravity_b[:, 2], 0, 0.7) / 0.7
+    return reward
     
 def flat_orientation_y(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Penalize non-flat base orientation using L2 squared kernel.
@@ -363,3 +388,19 @@ def feet_edge_penalty(
     
     return penalty
 
+def stand_at_target(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+    dis_threshold: float = 0.25,
+    heading_threshold: float = 0.5,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Penalize offsets from the default joint positions when the command is very small."""
+    # Penalize motion when command is nearly zero.
+    reward = mdp.joint_deviation_l1(env, asset_cfg)
+    command: TerrainBasedPoseCommand = env.command_manager.get_term(command_name)
+    distance = torch.norm(command.robot_pos_w - command.target_pos_w, dim=-1)  # (num_envs,)
+    heading_error = torch.abs(command.target_heading_b)  # (num_envs,)
+    condition = (distance < dis_threshold) & (heading_error < heading_threshold)
+    reward = torch.where(condition, reward, 0.0)
+    return reward

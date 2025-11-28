@@ -136,7 +136,7 @@ class CommandsCfg:
     target_position = mdp.TerrainBasedPoseCommandCfg(
         asset_name="robot",
         resampling_time_range=(6.0, 6.0),
-        simple_heading=True,
+        simple_heading=False,
         debug_vis=True,
         min_dist=1.0,
         ranges=mdp.TerrainBasedPoseCommandCfg.Ranges(
@@ -388,15 +388,20 @@ class RewardsCfg:
     """Reward terms for the MDP."""
     # General
     is_terminated = RewTerm(func=mdp.is_terminated, weight=0.0)
+    stand_at_target = RewTerm(func=mdp.stand_at_target, weight=0.0, params={"command_name": "target_position", 
+                                                                            "asset_cfg": SceneEntityCfg("robot")})
     
     #command
-    heading_command_error_abs = RewTerm(func=mdp.heading_command_error_abs, weight=0.0, params={"command_name": "target_position"})
+    heading_command_error_abs = RewTerm(func=mdp.heading_command_error_abs, weight=0.0, 
+                                        params={"command_name": "target_position",
+                                                "Tr": 1.0})
     
     #base
-    base_height = RewTerm(func=mdp.base_height_abs, weight=0.0, params={"sensor_cfg": SceneEntityCfg("height_scanner_base")})
+    base_height = RewTerm(func=mdp.base_height_l1, weight=0.0, params={"sensor_cfg": SceneEntityCfg("height_scanner_base")})
     flat_orientation = RewTerm(func=mdp.flat_orientation_y, weight=0.0, params={"asset_cfg": SceneEntityCfg("robot")})
     base_lin_vel_z = RewTerm(func=mdp.lin_vel_z_l2, weight=0.0)
     base_ang_vel_xy = RewTerm(func=mdp.ang_vel_xy_l2, weight=0.0)
+    base_acc = RewTerm(func=mdp.base_acc, weight=0.0, params={"asset_cfg": SceneEntityCfg("robot")})
     
     # Joint penalties
     joint_torques_l2 = RewTerm(
@@ -449,14 +454,14 @@ class RewardsCfg:
         func=mdp.task_reward,
         weight=3.0,
         params={"command_name": "target_position",  
-                "Tr": 1.5,
+                "Tr": 1.0,
                 },
     )
     exploration = RewTerm(
         func=mdp.exploration_reward,
         weight=1.5,
         params={"command_name": "target_position", 
-                "Tr": 1.5,
+                "Tr": 1.0,
                 },
     )
     stalling_penalty = RewTerm(
@@ -509,6 +514,11 @@ class RewardsCfg:
             "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_foot"),
             "edge_height_thresh": 0.05,
         },
+    )
+    feet_stumble = RewTerm(
+        func=mdp.feet_stumble,
+        weight=0.0,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_foot")},
     )
 
 @configclass

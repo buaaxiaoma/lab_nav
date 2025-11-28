@@ -75,16 +75,18 @@ class UnitreeGo2RoughEnvCfg(LocomotionPositionEnvCfg):
         self.events.randomize_push_robot.params["velocity_range"] = {"x": (0, 0), "y": (0, 0)}
         # ------------------------------Rewards------------------------------
         # General
-        self.rewards.is_terminated.weight = -400.0
+        self.rewards.is_terminated.weight = -200.0
+        self.rewards.stand_at_target.weight = -0.5
         
         # Base
         self.rewards.base_height.weight = -2.5
         self.rewards.flat_orientation.weight = -0.5
         self.rewards.base_lin_vel_z.weight = -0.7
         self.rewards.base_ang_vel_xy.weight = -0.02
+        self.rewards.base_acc.weight = -0.001
         
         # Command
-        self.rewards.heading_command_error_abs.weight = -2.0
+        self.rewards.heading_command_error_abs.weight = 5.0
 
         # Joint penalties
         self.rewards.joint_torques_l2.weight = -2e-4
@@ -99,7 +101,7 @@ class UnitreeGo2RoughEnvCfg(LocomotionPositionEnvCfg):
         ]
         
         # Action penalties
-        self.rewards.applied_torque_limits.weight = -1.0
+        self.rewards.applied_torque_limits.weight = -0.2
         self.rewards.action_rate_l2.weight = -2e-5
 
         # Contact sensor
@@ -122,6 +124,7 @@ class UnitreeGo2RoughEnvCfg(LocomotionPositionEnvCfg):
         self.rewards.feet_slide.params["asset_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_gait.weight = 2.0 # Increased from 1.0 to encourage trotting
         self.rewards.feet_gait.params["synced_feet_pair_names"] = (("FL_foot", "RR_foot"), ("FR_foot", "RL_foot"))
+        self.rewards.feet_stumble.weight = -1.0
 
         # If the weight of rewards is 0, set rewards to None
         if self.__class__.__name__ == "UnitreeGo2RoughEnvCfg":
@@ -132,7 +135,7 @@ class UnitreeGo2RoughEnvCfg(LocomotionPositionEnvCfg):
         # self.terminations.illegal_contact = None
 
         # ------------------------------Curriculums------------------------------
-        self.curriculum.terrain_levels.params["threshold"] = 0.3
+        self.curriculum.terrain_levels.params["threshold"] = 0.25
         # self.curriculum.command_levels = None
 
 @configclass

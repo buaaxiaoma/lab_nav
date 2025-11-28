@@ -22,27 +22,9 @@ def remaining_time_fraction(env: ManagerBasedRLEnv) -> torch.Tensor:
 
 class HeightScanRand(ManagerTermBase):
     
-    cfg: HeightScanRandCfg
-    
-    def __init__(self, cfg: HeightScanRandCfg, env: ManagerBasedRLEnv):
+    def __init__(self, cfg: ObsTerm, env: ManagerBasedRLEnv):
         super().__init__(cfg, env)
         
-        # Handle case where cfg is a generic ObservationTermCfg with params
-        if not isinstance(self.cfg, HeightScanRandCfg):
-            if hasattr(self.cfg, "params") and isinstance(self.cfg.params, HeightScanRandCfg):
-                self.cfg = self.cfg.params
-            elif hasattr(self.cfg, "params") and isinstance(self.cfg.params, dict):
-                params = self.cfg.params
-                try:
-                    new_cfg = HeightScanRandCfg(func=self.__class__)
-                except TypeError:
-                    new_cfg = HeightScanRandCfg()
-                
-                for k, v in params.items():
-                    if hasattr(new_cfg, k):
-                        setattr(new_cfg, k, v)
-                self.cfg = new_cfg
-
         # Pre-allocate Sobel kernels for edge detection
         self.sobel_x = torch.tensor([[-1., 0., 1.],
                                      [-2., 0., 2.],
@@ -56,6 +38,16 @@ class HeightScanRand(ManagerTermBase):
         env: ManagerBasedRLEnv,
         asset_cfg: SceneEntityCfg,
         sensor_cfg: SceneEntityCfg,
+        grid_height: int = 31,
+        grid_width: int = 11,
+        gaussian_std_h: float = 0.1,
+        dropout_prob: float = 0.05,
+        missing_value: float = 0.0,
+        leg_occlusion_radius: float = 0.1,  # 10cm 半径
+        leg_occlusion_prob: float = 0.7,
+        enable_edge_noise: bool = True,
+        edge_grad_threshold: float = 0.05,
+        edge_noise_std: float = 0.03
     ) -> torch.Tensor:
         """对 scanner 输出 (N, R, 3) 做增强版随机化，返回 (N, R, 3) 高度观测.
 
@@ -87,7 +79,7 @@ class HeightScanRand(ManagerTermBase):
         scan_points = torch.stack([ray_hits[..., 0], ray_hits[..., 1], heights], dim=-1)
         
         num_envs, num_rays, _ = scan_points.shape
-        H, W = self.cfg.grid_height, self.cfg.grid_width
+        H, W = grid_height, grid_width
         assert H * W == num_rays, (
             f"grid_height * grid_width must equal num_rays_per_scan, "
             f"but {H} * {W} != {num_rays}"
@@ -102,30 +94,30 @@ class HeightScanRand(ManagerTermBase):
         h = zs.clone()
 
         # 2. 应用各种噪声
-        h = self._apply_gaussian_noise(h)
-        h = self._apply_dropout(h)
-        h = self._apply_leg_occlusion(h, xs, ys, env, asset_cfg)
-        h = self._apply_edge_noise(h)
+        h = self._apply_gaussian_noise(h, gaussian_std_h)
+        h = self._apply_dropout(h, dropout_prob, missing_value)
+        h = self._apply_leg_occlusion(h, xs, ys, env, asset_cfg, leg_occlusion_radius, leg_occlusion_prob, missing_value)
+        h = self._apply_edge_noise(h, enable_edge_noise, edge_grad_threshold, edge_noise_std)
 
         # 3. 恢复形状并返回 (N, R, 3)
         h_out = h.view(num_envs, num_rays)
         
         return h_out
 
-    def _apply_gaussian_noise(self, h):
+    def _apply_gaussian_noise(self, h, gaussian_std_h):
         """应用高斯噪声"""
-        if self.cfg.gaussian_std_h > 0.0:
-            h = h + torch.randn_like(h) * self.cfg.gaussian_std_h
+        if gaussian_std_h > 0.0:
+            h = h + torch.randn_like(h) * gaussian_std_h
         return h
 
-    def _apply_dropout(self, h):
+    def _apply_dropout(self, h, dropout_prob, missing_value):
         """应用随机 Dropout"""
-        if self.cfg.dropout_prob > 0.0:
-            drop_mask = (torch.rand_like(h) < self.cfg.dropout_prob)
-            h = torch.where(drop_mask, torch.full_like(h, self.cfg.missing_value), h)
+        if dropout_prob > 0.0:
+            drop_mask = (torch.rand_like(h) < dropout_prob)
+            h = torch.where(drop_mask, torch.full_like(h, missing_value), h)
         return h
 
-    def _apply_leg_occlusion(self, h, xs, ys, env, asset_cfg):
+    def _apply_leg_occlusion(self, h, xs, ys, env, asset_cfg, leg_occlusion_radius, leg_occlusion_prob, missing_value):
         """应用腿部遮挡模型"""
         asset: RigidObject = env.scene[asset_cfg.name]
         foot_positions = asset.data.body_pos_w[:, asset_cfg.body_ids, :]
@@ -149,15 +141,15 @@ class HeightScanRand(ManagerTermBase):
         dist = torch.sqrt((xs_exp - foot_x) ** 2 + (ys_exp - foot_y) ** 2)
 
         # 遮挡掩码
-        near_any_foot = (dist < self.cfg.leg_occlusion_radius).any(dim=1) # (N, H, W)
-        rand_mask = torch.rand_like(h) < self.cfg.leg_occlusion_prob
+        near_any_foot = (dist < leg_occlusion_radius).any(dim=1) # (N, H, W)
+        rand_mask = torch.rand_like(h) < leg_occlusion_prob
         occlude_mask = near_any_foot & rand_mask
 
-        return torch.where(occlude_mask, torch.full_like(h, self.cfg.missing_value), h)
+        return torch.where(occlude_mask, torch.full_like(h, missing_value), h)
 
-    def _apply_edge_noise(self, h):
+    def _apply_edge_noise(self, h, enable_edge_noise, edge_grad_threshold, edge_noise_std):
         """应用地形边缘增强噪声 (向量化实现)"""
-        if not self.cfg.enable_edge_noise or self.cfg.edge_noise_std <= 0.0:
+        if not enable_edge_noise or edge_noise_std <= 0.0:
             return h
             
         # 确保 Sobel 核在正确的设备上
@@ -174,43 +166,9 @@ class HeightScanRand(ManagerTermBase):
         grad_mag = torch.sqrt(grad_x.pow(2) + grad_y.pow(2)).squeeze(1) # (N, H, W)
         
         # 应用噪声
-        edge_mask = grad_mag > self.cfg.edge_grad_threshold
+        edge_mask = grad_mag > edge_grad_threshold
         if edge_mask.any():
-            edge_noise = torch.randn_like(h) * self.cfg.edge_noise_std
+            edge_noise = torch.randn_like(h) * edge_noise_std
             h = torch.where(edge_mask, h + edge_noise, h)
             
         return h
-    
-@configclass
-class HeightScanRandCfg(ObsTerm):
-    """高度扫描随机化配置，针对 scanner 输出为 (N, num_rays, 3) 的情况."""
-
-    # 网格尺寸：H * W = num_rays_per_scan
-    grid_height: int = 31
-    grid_width: int = 11
-
-    # --------------------
-    # 1. 高斯噪声
-    # --------------------
-    gaussian_std_xy: float = 0.02  # ~2cm
-    gaussian_std_h: float = 0.1  # ~10cm
-
-    # --------------------
-    # 2. 随机 dropout
-    # --------------------
-    dropout_prob: float = 0.05
-    missing_value: float = 0.0
-
-    # --------------------
-    # 3. 腿遮挡模型
-    # --------------------
-    # 距离脚在 xy 平面上的半径内的射线，有一定概率被遮挡
-    leg_occlusion_radius: float = 0.1  # 10cm 半径
-    leg_occlusion_prob: float = 0.7    # 在半径内被遮挡的概率
-
-    # --------------------
-    # 4. 地形边缘增强噪声
-    # --------------------
-    enable_edge_noise: bool = True
-    edge_grad_threshold: float = 0.05
-    edge_noise_std: float = 0.03

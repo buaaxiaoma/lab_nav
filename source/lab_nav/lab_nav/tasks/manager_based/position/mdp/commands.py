@@ -42,29 +42,29 @@ class TerrainBasedPoseCommand(UniformPose2dCommand):
         self.valid_targets: torch.Tensor = self.terrain.flat_patches["target"]
         
     @property
-    def robot_pos(self) -> torch.Tensor:
+    def robot_pos_w(self) -> torch.Tensor:
         return self.robot.data.root_pos_w
     
     @property
-    def robot_heading(self) -> torch.Tensor:
+    def robot_heading_w(self) -> torch.Tensor:
         return self.robot.data.heading_w
     
     @property
-    def target_pos(self) -> torch.Tensor:
+    def target_pos_w(self) -> torch.Tensor:
         return self.pos_command_w
     
     @property
-    def robot_velocity(self) -> torch.Tensor:
+    def robot_velocity_w(self) -> torch.Tensor:
         return self.robot.data.root_lin_vel_w
     
     @property
     def target_heading_b(self) -> torch.Tensor:
         return self.heading_command_b
     
-    @property
-    def command(self) -> torch.Tensor:
-        """The desired 2D-pose in base frame. Shape is (num_envs, 3)."""
-        return self.pos_command_b
+    # @property
+    # def command(self) -> torch.Tensor:
+    #     """The desired 2D-pose in base frame. Shape is (num_envs, 3)."""
+    #     return self.pos_command_b
         
 
     def _resample_command(self, env_ids: Sequence[int]):
