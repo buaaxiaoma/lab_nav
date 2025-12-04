@@ -75,26 +75,26 @@ class UnitreeGo2RoughEnvCfg(LocomotionPositionEnvCfg):
         self.events.randomize_push_robot.params["velocity_range"] = {"x": (0, 0), "y": (0, 0)}
         # ------------------------------Rewards------------------------------
         # General
-        self.rewards.is_terminated.weight = -200.0
-        self.rewards.stand_at_target.weight = -0.5
+        self.rewards.is_terminated.weight = -400.0
+        self.rewards.stand_at_target.weight = -1.5
         
         # Base
-        self.rewards.base_height.weight = -2.5
+        self.rewards.base_height.weight = -5.0
         self.rewards.flat_orientation.weight = -0.5
         self.rewards.base_lin_vel_z.weight = -0.7
-        self.rewards.base_ang_vel_xy.weight = -0.02
-        self.rewards.base_acc.weight = -0.001
+        self.rewards.base_ang_vel_xy.weight = -0.05
+        self.rewards.base_acc.weight = -5e-4
         
         # Command
-        self.rewards.heading_command_error_abs.weight = 5.0
+        self.rewards.heading_command_error_abs.weight = 3.0
 
         # Joint penalties
         self.rewards.joint_torques_l2.weight = -2e-4
         self.rewards.joint_vel_l2.weight = -1e-4
         self.rewards.joint_acc_l2.weight = -2.5e-7
         self.rewards.joint_pos_limits.weight = -10.0
-        self.rewards.joint_vel_limits.weight = -2e-5
-        self.rewards.joint_mirror.weight = -0.5  # Increased from -0.05 to enforce symmetry
+        self.rewards.joint_vel_limits.weight = -1.0
+        self.rewards.joint_mirror.weight = -0.5
         self.rewards.joint_mirror.params["mirror_joints"] = [
             ["FR_(hip|thigh|calf).*", "RL_(hip|thigh|calf).*"],
             ["FL_(hip|thigh|calf).*", "RR_(hip|thigh|calf).*"],
@@ -105,26 +105,31 @@ class UnitreeGo2RoughEnvCfg(LocomotionPositionEnvCfg):
         self.rewards.action_rate_l2.weight = -2e-5
 
         # Contact sensor
-        self.rewards.undesired_contacts.weight = -1.0
+        self.rewards.undesired_contacts.weight = -2.0
         self.rewards.undesired_contacts.params["sensor_cfg"].body_names = ["Head_.*", ".*_hip", ".*_thigh", ".*_calf"]
         self.rewards.undesired_contacts.params["threshold"] = 1.0
         
 
         # Position-tracking rewards
         self.rewards.position_tracking.weight = 15.0
-        self.rewards.exploration.weight = 3.0
+        self.rewards.exploration.weight = 5.0
         self.rewards.stalling_penalty.weight = -5.0
 
         # Others
-        self.rewards.air_time_variance.weight = -1.0
-        self.rewards.feet_acc.weight = -5e-7
+        self.rewards.air_time_variance.weight = -5.0
+        self.rewards.feet_acc.weight = -2e-6
         self.rewards.feet_acc.params["asset_cfg"].body_names = [self.foot_link_name]
-        self.rewards.feet_slide.weight = -1.0
+        self.rewards.feet_slide.weight = -2.0
         self.rewards.feet_slide.params["sensor_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_slide.params["asset_cfg"].body_names = [self.foot_link_name]
-        self.rewards.feet_gait.weight = 2.0 # Increased from 1.0 to encourage trotting
+        self.rewards.feet_gait.weight = 5.0 # Increased to strongly encourage trotting and prevent tripod gait
         self.rewards.feet_gait.params["synced_feet_pair_names"] = (("FL_foot", "RR_foot"), ("FR_foot", "RL_foot"))
-        self.rewards.feet_stumble.weight = -1.0
+        self.rewards.feet_height.weight = -5.0
+        self.rewards.feet_height.params["asset_cfg"].body_names = [self.foot_link_name]
+        self.rewards.feet_height.params["target_height"] = -0.22
+        self.rewards.feet_height.params["dis_threshold"] = 0.3
+        self.rewards.feet_height.params["heading_threshold"] = 0.5
+        self.rewards.feet_stumble.weight = -2.0
 
         # If the weight of rewards is 0, set rewards to None
         if self.__class__.__name__ == "UnitreeGo2RoughEnvCfg":

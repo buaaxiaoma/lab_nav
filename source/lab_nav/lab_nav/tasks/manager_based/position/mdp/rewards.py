@@ -153,13 +153,13 @@ def heading_command_error_abs(env: ManagerBasedRLEnv, command_name: str, Tr: flo
     Returns:
         torch.Tensor: The computed absolute heading error tensor of shape (num_envs,).
     """
-    command: TerrainBasedPoseCommand = env.command_manager.get_term(command_name)
-    distance = torch.norm(command.robot_pos_w - command.target_pos_w, dim=-1)  # (num_envs,)
+    # command: TerrainBasedPoseCommand = env.command_manager.get_term(command_name)
+    # distance = torch.norm(command.robot_pos_w - command.target_pos_w, dim=-1)  # (num_envs,)
 
-    condition = (env.episode_length_buf * env.step_dt >= env.max_episode_length_s - Tr) & (distance <= 0.5)
+    # condition = (env.episode_length_buf * env.step_dt >= env.max_episode_length_s - Tr) & (distance <= 0.5)
     command: TerrainBasedPoseCommand = env.command_manager.get_term(command_name)
     heading_b = command.target_heading_b  # (num_envs,)
-    reward = torch.where(condition, 1 - 0.5 * heading_b.abs(), 0)
+    reward = 1 - 0.5 * heading_b.abs()
     return reward
 
 def air_time_variance_penalty(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
@@ -319,7 +319,8 @@ def feet_height_body(
     command_name: str,
     asset_cfg: SceneEntityCfg,
     target_height: float,
-    tanh_mult: float,
+    dis_threshold: float = 0.25,
+    heading_threshold: float = 0.5,
 ) -> torch.Tensor:
     """Reward the swinging feet for clearing a specified height off the ground"""
     asset: RigidObject = env.scene[asset_cfg.name]
@@ -336,10 +337,24 @@ def feet_height_body(
         footvel_in_body_frame[:, i, :] = math_utils.quat_apply_inverse(
             asset.data.root_quat_w, cur_footvel_translated[:, i, :]
         )
-    foot_z_target_error = torch.square(footpos_in_body_frame[:, :, 2] - target_height).view(env.num_envs, -1)
-    foot_velocity_tanh = torch.tanh(tanh_mult * torch.norm(footvel_in_body_frame[:, :, :2], dim=2))
-    reward = torch.sum(foot_z_target_error * foot_velocity_tanh, dim=1)
-    reward *= torch.linalg.norm(env.command_manager.get_command(command_name), dim=1) > 0.1
+    
+    # Calculate height error: only penalize if foot is LOWER than target height
+    # error = max(0, target_height - current_height)
+    foot_z_target_error = torch.clamp(target_height - footpos_in_body_frame[:, :, 2], min=0.0) # (num_envs, num_feet)
+    
+    # Identify swing phase: foot has significant horizontal velocity
+    is_swing = torch.norm(footvel_in_body_frame[:, :, :2], dim=2) > 0.1 # (num_envs, num_feet)
+
+    # We sum over all feet
+    reward = torch.sum(foot_z_target_error * is_swing, dim=1) # (num_envs,)
+    
+    command: TerrainBasedPoseCommand = env.command_manager.get_term(command_name)
+    distance = torch.norm(command.robot_pos_w - command.target_pos_w, dim=-1)  # (num_envs,)
+    heading_error = torch.abs(command.target_heading_b)  # (num_envs,)
+    condition = (distance < dis_threshold) & (heading_error < heading_threshold)
+    reward = torch.where(condition, 0.0, reward)
+    
+    # Scale with gravity projection (optional, but good for stability)
     reward *= torch.clamp(-env.scene["robot"].data.projected_gravity_b[:, 2], 0, 0.7) / 0.7
     return reward
 

@@ -136,7 +136,7 @@ class CommandsCfg:
     target_position = mdp.TerrainBasedPoseCommandCfg(
         asset_name="robot",
         resampling_time_range=(6.0, 6.0),
-        simple_heading=False,
+        simple_heading=True,
         debug_vis=True,
         min_dist=1.0,
         ranges=mdp.TerrainBasedPoseCommandCfg.Ranges(
@@ -503,6 +503,17 @@ class RewardsCfg:
             "sensor_cfg": SceneEntityCfg("contact_forces"),
         },
     )
+    feet_height = RewTerm(
+        func=mdp.feet_height_body,
+        weight=0.0,
+        params={
+            "command_name": "target_position",
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*_foot"),
+            "target_height": -0.2,
+            "dis_threshold": 0.25,
+            "heading_threshold": 0.5,
+        },
+    )
     feet_edge = RewTerm(
         func=mdp.feet_edge_penalty,
         weight=0.0,
@@ -550,23 +561,23 @@ class CurriculumCfg:
         params={"threshold": 0.5, "asset_cfg": SceneEntityCfg("robot")}
     )
     
-    change_stalling_penalty = CurrTerm(
-        func=mdp.modify_term_cfg,
-        params={
-            "address": "rewards.stalling_penalty.weight",
-            "modify_fn": mdp.override_value,
-            "modify_params": {"value": -12.0, "num_steps": 2000*48}
-        }
-    )
+    # change_stalling_penalty = CurrTerm(
+    #     func=mdp.modify_term_cfg,
+    #     params={
+    #         "address": "rewards.stalling_penalty.weight",
+    #         "modify_fn": mdp.override_value,
+    #         "modify_params": {"value": -12.0, "num_steps": 2000*48}
+    #     }
+    # )
     
-    change_task_reward = CurrTerm(
-        func=mdp.modify_term_cfg,
-        params={
-            "address": "rewards.position_tracking.weight",
-            "modify_fn": mdp.override_value,
-            "modify_params": {"value": 20.0, "num_steps": 2000*48}
-        }
-    )
+    # change_task_reward = CurrTerm(
+    #     func=mdp.modify_term_cfg,
+    #     params={
+    #         "address": "rewards.position_tracking.weight",
+    #         "modify_fn": mdp.override_value,
+    #         "modify_params": {"value": 20.0, "num_steps": 2000*48}
+    #     }
+    # )
     
     update_randomize_reset_base = CurrTerm(
         func=mdp.modify_term_cfg,
@@ -577,7 +588,7 @@ class CurriculumCfg:
                 {"pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "z": (0.0, 0.2), "yaw": (-3.14, 3.14)},
                 "velocity_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "z": (-0.0, 0.0),
                 "roll": (-0.5, 0.5), "pitch": (-0.5, 0.5), "yaw": (-0.5, 0.5)}},
-                "num_steps": 8000*48}
+                "num_steps": 5000*48}
         }
     )
     
