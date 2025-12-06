@@ -1,6 +1,7 @@
 from isaaclab.utils import configclass
 
 from lab_nav.tasks.manager_based.position.position_env_cfg import LocomotionPositionEnvCfg
+import lab_nav.tasks.manager_based.position.mdp as mdp
 
 ##
 # Pre-defined configs
@@ -76,7 +77,7 @@ class UnitreeGo2RoughEnvCfg(LocomotionPositionEnvCfg):
         # ------------------------------Rewards------------------------------
         # General
         self.rewards.is_terminated.weight = -400.0
-        self.rewards.stand_at_target.weight = -1.5
+        self.rewards.joint_deviation.weight = -0.25
         
         # Base
         self.rewards.base_height.weight = -5.0
@@ -106,7 +107,7 @@ class UnitreeGo2RoughEnvCfg(LocomotionPositionEnvCfg):
 
         # Contact sensor
         self.rewards.undesired_contacts.weight = -2.0
-        self.rewards.undesired_contacts.params["sensor_cfg"].body_names = ["Head_.*", ".*_hip", ".*_thigh", ".*_calf"]
+        self.rewards.undesired_contacts.params["sensor_cfg"].body_names = [".*_hip", ".*_thigh", ".*_calf"]
         self.rewards.undesired_contacts.params["threshold"] = 1.0
         
 
@@ -116,19 +117,24 @@ class UnitreeGo2RoughEnvCfg(LocomotionPositionEnvCfg):
         self.rewards.stalling_penalty.weight = -5.0
 
         # Others
-        self.rewards.air_time_variance.weight = -5.0
+        self.rewards.air_time_variance.weight = -4.0
         self.rewards.feet_acc.weight = -2e-6
         self.rewards.feet_acc.params["asset_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_slide.weight = -2.0
         self.rewards.feet_slide.params["sensor_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_slide.params["asset_cfg"].body_names = [self.foot_link_name]
-        self.rewards.feet_gait.weight = 5.0 # Increased to strongly encourage trotting and prevent tripod gait
+        self.rewards.feet_gait.weight = 4.0 # Increased to strongly encourage trotting and prevent tripod gait
         self.rewards.feet_gait.params["synced_feet_pair_names"] = (("FL_foot", "RR_foot"), ("FR_foot", "RL_foot"))
         self.rewards.feet_height.weight = -5.0
         self.rewards.feet_height.params["asset_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_height.params["target_height"] = -0.22
-        self.rewards.feet_height.params["dis_threshold"] = 0.3
+        self.rewards.feet_height.params["dis_threshold"] = 0.25
         self.rewards.feet_height.params["heading_threshold"] = 0.5
+        self.rewards.feet_air_time.weight = 1.0
+        self.rewards.feet_air_time.params["threshold"] = 0.5
+        self.rewards.feet_air_time.params["dis_threshold"] = 0.25
+        self.rewards.feet_air_time.params["heading_threshold"] = 0.5
+        self.rewards.feet_air_time.params["sensor_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_stumble.weight = -2.0
 
         # If the weight of rewards is 0, set rewards to None
@@ -136,7 +142,7 @@ class UnitreeGo2RoughEnvCfg(LocomotionPositionEnvCfg):
             self.disable_zero_weight_rewards()
 
         # ------------------------------Terminations------------------------------
-        self.terminations.illegal_contact.params["sensor_cfg"].body_names = [self.base_link_name]
+        self.terminations.illegal_contact.params["sensor_cfg"].body_names = [self.base_link_name, "Head_.*"]
         # self.terminations.illegal_contact = None
 
         # ------------------------------Curriculums------------------------------

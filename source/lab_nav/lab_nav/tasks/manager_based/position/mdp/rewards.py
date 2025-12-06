@@ -181,14 +181,14 @@ def feet_stumble(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg) -> torch.Te
     reward *= torch.clamp(-env.scene["robot"].data.projected_gravity_b[:, 2], 0, 0.7) / 0.7
     return reward
     
-def flat_orientation_y(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+def flat_orientation_xy(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Penalize non-flat base orientation using L2 squared kernel.
 
-    This is computed by penalizing the y-component of the projected gravity vector.
+    This is computed by penalizing the xy-component of the projected gravity vector.
     """
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
-    return torch.square(asset.data.projected_gravity_b[:, 1])
+    return torch.sum(torch.square(asset.data.projected_gravity_b[:, :2]), dim=1)  # (num_envs,)
 
     
 class GaitReward(ManagerTermBase):
@@ -358,6 +358,32 @@ def feet_height_body(
     reward *= torch.clamp(-env.scene["robot"].data.projected_gravity_b[:, 2], 0, 0.7) / 0.7
     return reward
 
+def feet_air_time_1(
+    env: ManagerBasedRLEnv, command_name: str, sensor_cfg: SceneEntityCfg, threshold: float,
+    dis_threshold: float = 0.25, heading_threshold: float = 0.5
+) -> torch.Tensor:
+    """Reward long steps taken by the feet using L2-kernel.
+
+    This function rewards the agent for taking steps that are longer than a threshold. This helps ensure
+    that the robot lifts its feet off the ground and takes steps. The reward is computed as the sum of
+    the time for which the feet are in the air.
+
+    If the commands are small (i.e. the agent is not supposed to take a step), then the reward is zero.
+    """
+    # extract the used quantities (to enable type-hinting)
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    # compute the reward
+    first_contact = contact_sensor.compute_first_contact(env.step_dt)[:, sensor_cfg.body_ids]
+    last_air_time = contact_sensor.data.last_air_time[:, sensor_cfg.body_ids]
+    reward = torch.sum((last_air_time - threshold) * first_contact, dim=1)
+    command: TerrainBasedPoseCommand = env.command_manager.get_term(command_name)
+    distance = torch.norm(command.robot_pos_w - command.target_pos_w, dim=-1)  # (num_envs,)
+    heading_error = torch.abs(command.target_heading_b)  # (num_envs,)
+    condition = (distance < dis_threshold) & (heading_error < heading_threshold)
+    reward = torch.where(condition, 0.0, reward)
+    return reward
+
+
 def feet_edge_penalty(
     env: ManagerBasedRLEnv,
     FL_ray_sensor_cfg: SceneEntityCfg,
@@ -402,20 +428,3 @@ def feet_edge_penalty(
     penalty = torch.sum(torch.where(contacts & is_edge, 1.0, 0.0), dim=-1)
     
     return penalty
-
-def stand_at_target(
-    env: ManagerBasedRLEnv,
-    command_name: str,
-    dis_threshold: float = 0.25,
-    heading_threshold: float = 0.5,
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-) -> torch.Tensor:
-    """Penalize offsets from the default joint positions when the command is very small."""
-    # Penalize motion when command is nearly zero.
-    reward = mdp.joint_deviation_l1(env, asset_cfg)
-    command: TerrainBasedPoseCommand = env.command_manager.get_term(command_name)
-    distance = torch.norm(command.robot_pos_w - command.target_pos_w, dim=-1)  # (num_envs,)
-    heading_error = torch.abs(command.target_heading_b)  # (num_envs,)
-    condition = (distance < dis_threshold) & (heading_error < heading_threshold)
-    reward = torch.where(condition, reward, 0.0)
-    return reward
