@@ -130,7 +130,7 @@ def base_height_l1(
     else:
         # Use the provided target height directly for flat terrain
         adjusted_target_height = target_height
-    # Compute the L2 squared penalty
+    # Compute the L1 squared penalty
     reward = torch.abs(asset.data.root_pos_w[:, 2] - adjusted_target_height)
     return reward
 

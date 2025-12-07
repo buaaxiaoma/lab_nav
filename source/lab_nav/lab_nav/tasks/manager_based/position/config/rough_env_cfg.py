@@ -80,7 +80,7 @@ class UnitreeGo2RoughEnvCfg(LocomotionPositionEnvCfg):
         self.rewards.joint_deviation.weight = -0.25
         
         # Base
-        self.rewards.base_height.weight = -5.0
+        self.rewards.base_height.weight = -10.0
         self.rewards.flat_orientation.weight = -0.5
         self.rewards.base_lin_vel_z.weight = -0.7
         self.rewards.base_ang_vel_xy.weight = -0.05
