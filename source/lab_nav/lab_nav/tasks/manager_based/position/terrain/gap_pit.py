@@ -100,12 +100,47 @@ GAP_CFG = TerrainGeneratorCfg(
     curriculum=True,
     sub_terrains={
         "gap": terrain_gen.MeshGapTerrainCfg(
+            proportion=0.5,
             gap_width_range=(0.1, 1.2),
             platform_width=3.0,
             flat_patch_sampling={
                 "target": FlatPatchSamplingCfg(
                     x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
                     num_patches=100, patch_radius=0.25, max_height_diff=0.1)
+            },
+        ),
+        "random_rough": terrain_gen.HfRandomUniformTerrainCfg(
+            proportion=0.2, noise_range=(0.02, 0.10), noise_step=0.02, border_width=0.25,
+            flat_patch_sampling={
+                "target": FlatPatchSamplingCfg(
+                    x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
+                    num_patches=100, patch_radius=0.05, max_height_diff=0.1)
+            },
+        ),
+        "pyramid_stairs": terrain_gen.MeshPyramidStairsTerrainCfg(
+            proportion=0.15,
+            step_height_range=(0.05, 0.23),
+            step_width=0.3,
+            platform_width=3.0,
+            border_width=1.0,
+            holes=False,
+            flat_patch_sampling={
+                "target": FlatPatchSamplingCfg(
+                    x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
+                    num_patches=100, patch_radius=0.1, max_height_diff=0.1)
+            },
+        ),
+        "pyramid_stairs_inv": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
+            proportion=0.15,
+            step_height_range=(0.05, 0.23),
+            step_width=0.3,
+            platform_width=3.0,
+            border_width=1.0,
+            holes=False,
+            flat_patch_sampling={
+                "target": FlatPatchSamplingCfg(
+                    x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
+                    num_patches=100, patch_radius=0.1, max_height_diff=0.1)
             },
         ),
     }, 
@@ -122,12 +157,47 @@ PIT_CFG = TerrainGeneratorCfg(
     curriculum=True,
     sub_terrains={
         "pit": terrain_gen.MeshPitTerrainCfg(
+            proportion=0.5,
             pit_depth_range=(0.05, 0.9),
             platform_width=3.0,
             flat_patch_sampling={
                 "target": FlatPatchSamplingCfg(
                     x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
                     num_patches=100, patch_radius=0.25, max_height_diff=0.1)
+            },
+        ),
+        "random_rough": terrain_gen.HfRandomUniformTerrainCfg(
+            proportion=0.2, noise_range=(0.02, 0.10), noise_step=0.02, border_width=0.25,
+            flat_patch_sampling={
+                "target": FlatPatchSamplingCfg(
+                    x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
+                    num_patches=100, patch_radius=0.05, max_height_diff=0.1)
+            },
+        ),
+        "pyramid_stairs": terrain_gen.MeshPyramidStairsTerrainCfg(
+            proportion=0.15,
+            step_height_range=(0.05, 0.23),
+            step_width=0.3,
+            platform_width=3.0,
+            border_width=1.0,
+            holes=False,
+            flat_patch_sampling={
+                "target": FlatPatchSamplingCfg(
+                    x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
+                    num_patches=100, patch_radius=0.1, max_height_diff=0.1)
+            },
+        ),
+        "pyramid_stairs_inv": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
+            proportion=0.15,
+            step_height_range=(0.05, 0.23),
+            step_width=0.3,
+            platform_width=3.0,
+            border_width=1.0,
+            holes=False,
+            flat_patch_sampling={
+                "target": FlatPatchSamplingCfg(
+                    x_range=(-4.5, 4.5), y_range=(-4.5, 4.5),
+                    num_patches=100, patch_radius=0.1, max_height_diff=0.1)
             },
         ),
     },
