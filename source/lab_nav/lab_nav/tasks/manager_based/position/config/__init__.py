@@ -7,7 +7,7 @@ from . import agents
 ##
 
 gym.register(
-    id="Lab-Position-GAP-Unitree-Go2-v0",
+    id="Lab-Position-Gap-Unitree-Go2-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
@@ -18,7 +18,7 @@ gym.register(
 )
 
 gym.register(
-    id="Lab-Position-GAP-Unitree-Go2-Play-v0",
+    id="Lab-Position-Gap-Unitree-Go2-Play-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={

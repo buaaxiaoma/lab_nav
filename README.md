@@ -54,6 +54,11 @@ python scripts/rsl_rl/train.py --task=Lab-Position-Rough-Unitree-Go2-v0 --headle
 python scripts/rsl_rl/play.py --task=Lab-Position-Rough-Unitree-Go2-Play-v0 --agent=rsl_rl_with_symmetry_cfg_entry_point --checkpoint logs/rsl_rl/unitree_go2_rough/...
 ```
 
+Train in the pit/gap terrain from checkpoint:
+```bash
+python scripts/rsl_rl/train.py --task=Lab-Position-Pit-Unitree-Go2-v0 --headless --device cuda:7 agent.device=cuda:7 --agent=rsl_rl_with_symmetry_cfg_entry_point --resume --load_run 2025-12-06_16-28-06_final1 --checkpoint model_19999.pt
+```
+
 You can also list all the joints and body names using:
 ```bash
 python scripts/tools/print_joint_names.py
